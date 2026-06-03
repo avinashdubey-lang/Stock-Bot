@@ -1,5 +1,4 @@
 from datetime import datetime, time
-import time as sleep_time
 
 from login import login_user
 from market_data import get_candles, get_latest_candle_stream
@@ -17,10 +16,11 @@ class TradingBot:
         self.logger = TradeLogger()
 
         self.smartApi = None
-
         self.current_day = None
-        self.trade_taken_today = False
         self.levels_loaded = False
+
+        # 🔥 FIX: track entry candle time
+        self.entry_block_time = None
 
     # ==========================
     # LOGIN
@@ -34,22 +34,22 @@ class TradingBot:
     # ==========================
     def reset_day(self):
         self.strategy.reset()
-        self.trade_taken_today = False
         self.levels_loaded = False
+        self.entry_block_time = None
         print("\n🔄 NEW DAY RESET DONE")
 
     # ==========================
-    # LOAD LEVELS (ONLY ONCE)
+    # LOAD LEVELS
     # ==========================
     def load_levels(self, symbol):
 
         print("📊 Fetching candles for levels...")
 
         df = get_candles(self.smartApi, symbol)
-
         self.strategy.set_opening_range(df)
 
-        self.levels_loaded = True
+        if self.strategy.levels_set:
+            self.levels_loaded = True
 
     # ==========================
     # MAIN LOOP
@@ -68,14 +68,14 @@ class TradingBot:
             today = now.date()
 
             # ==========================
-            # DAY RESET (ONLY ONCE)
+            # NEW DAY RESET
             # ==========================
             if self.current_day != today:
                 self.current_day = today
                 self.reset_day()
 
             # ==========================
-            # LOAD LEVELS ONLY AFTER 10:00
+            # LOAD LEVELS
             # ==========================
             if (
                 not self.levels_loaded
@@ -83,18 +83,34 @@ class TradingBot:
             ):
                 self.load_levels(symbol)
 
-            # ==========================
-            # WAIT UNTIL LEVELS READY
-            # ==========================
             if not self.levels_loaded:
                 continue
 
             # ==========================
-            # SIGNAL CHECK
+            # EXIT FIRST (SAFE ORDER)
+            # ==========================
+            if self.broker.position:
+
+                # 🔥 BLOCK SAME CANDLE EXIT
+                if self.entry_block_time == candle["time"]:
+                    continue
+
+                result = self.broker.check_exit(candle["close"])
+
+                if result:
+                    trade = self.broker.trade_history[-1]
+                    self.logger.log_trade(trade)
+
+                    print(f"🔴 EXIT EXECUTED: {result}")
+
+                    continue
+
+            # ==========================
+            # ENTRY SIGNAL
             # ==========================
             signal = self.strategy.on_candle(candle)
 
-            if signal and not self.trade_taken_today:
+            if signal:
 
                 print(f"\n📊 SIGNAL: {signal['action']}")
 
@@ -107,7 +123,11 @@ class TradingBot:
                 )
 
                 if opened:
-                    self.trade_taken_today = True
+
+                    # 🔥 IMPORTANT FIX
+                    self.entry_block_time = candle["time"]
+
+                    print(f"🟢 TRADE OPENED: {signal['action']} @ {signal['entry']}")
 
                     self.logger.log_trade({
                         "symbol": signal["symbol"],
@@ -121,23 +141,40 @@ class TradingBot:
                     })
 
             # ==========================
-            # EXIT CHECK
+            # FORCE EXIT (END OF DAY SAFE)
             # ==========================
-            if self.broker.position:
+            if (
+                self.broker.position
+                and now.time() >= time(15, 15)
+                and self.entry_block_time != candle["time"]
+            ):
 
-                result = self.broker.check_exit(candle["close"])
+                entry = self.broker.position["entry"]
+                direction = self.broker.position["direction"]
+                exit_price = candle["close"]
 
-                if result:
+                pnl = (
+                    exit_price - entry
+                    if direction == "BUY"
+                    else entry - exit_price
+                )
 
-                    trade = self.broker.trade_history[-1]
-                    self.logger.log_trade(trade)
+                self.broker.close_trade(
+                    exit_price,
+                    pnl,
+                    "MARKET_CLOSE"
+                )
+
+                trade = self.broker.trade_history[-1]
+                self.logger.log_trade(trade)
+
+                print("🔴 FORCE EXIT (MARKET CLOSE)")
+
+                continue
 
         print("Bot Stopped")
 
 
-# ==========================
-# START BOT
-# ==========================
 if __name__ == "__main__":
     bot = TradingBot()
     bot.run()
