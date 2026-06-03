@@ -10,7 +10,7 @@ class Strategy:
         self.trade_taken = False
 
     # ==========================
-    # RESET
+    # RESET DAILY
     # ==========================
     def reset(self):
         self.range_high = None
@@ -29,34 +29,31 @@ class Strategy:
         if df is None or len(df) == 0:
             return
 
-        df = df.sort_values("time")
+        df = df.sort_values("time").copy()
 
-        # convert to HH:MM string for stable matching
         df["hhmm"] = df["time"].dt.strftime("%H:%M")
 
-        # required candles
+        # Wait until both candles exist
+        candle_930 = df[df["hhmm"] == "09:30"]
         candle_945 = df[df["hhmm"] == "09:45"]
-        candle_1000 = df[df["hhmm"] == "10:00"]
 
-        # wait until both exist
-        if candle_945.empty or candle_1000.empty:
+        if candle_930.empty or candle_945.empty:
             return
 
-        # take ONLY those 2 candles
-        base = df[df["hhmm"].isin(["09:45", "10:00"])]
+        # Use ONLY 2nd and 3rd candle
+        base = df[df["hhmm"].isin(["09:30", "09:45"])]
 
-        # FINAL FIX: correct high/low logic
         self.range_high = base["high"].max()
         self.range_low = base["low"].min()
 
         self.levels_set = True
 
-        print("\n📊 LEVELS SET (LOCKED ONCE PER DAY)")
-        print("HIGH:", self.range_high)
-        print("LOW :", self.range_low)
+        print("\n📊 OPENING RANGE SET")
+        print(f"HIGH : {self.range_high}")
+        print(f"LOW  : {self.range_low}")
 
     # ==========================
-    # SIGNAL
+    # GENERATE SIGNAL
     # ==========================
     def on_candle(self, candle):
 
@@ -66,30 +63,46 @@ class Strategy:
         if self.trade_taken:
             return None
 
-        close = candle["close"]
+        close = float(candle["close"])
 
+        # BUY BREAKOUT
         if close > self.range_high:
+
             self.trade_taken = True
-            print("📈 BUY BREAKOUT")
+
+            target = round(close * 1.005, 2)
+            sl = round(close * 0.995, 2)
+
+            print(f"📈 BUY BREAKOUT @ {close}")
+            print(f"🎯 TARGET = {target}")
+            print(f"🛑 SL = {sl}")
 
             return {
                 "action": "BUY",
                 "symbol": "BHARTIARTL-EQ",
                 "entry": close,
-                "sl": self.range_low,
-                "target": close + (close - self.range_low)
+                "target": target,
+                "sl": sl
             }
 
+        # SELL BREAKOUT
         if close < self.range_low:
+
             self.trade_taken = True
-            print("📉 SELL BREAKOUT")
+
+            target = round(close * 0.995, 2)
+            sl = round(close * 1.005, 2)
+
+            print(f"📉 SELL BREAKOUT @ {close}")
+            print(f"🎯 TARGET = {target}")
+            print(f"🛑 SL = {sl}")
 
             return {
                 "action": "SELL",
                 "symbol": "BHARTIARTL-EQ",
                 "entry": close,
-                "sl": self.range_high,
-                "target": close - (self.range_high - close)
+                "target": target,
+                "sl": sl
             }
 
         return None
