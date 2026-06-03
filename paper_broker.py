@@ -91,4 +91,8 @@ class PaperBroker:
             f"PnL={pnl:.2f}"
         )
 
+<<<<<<< HEAD
         self.position = None
+=======
+        self.position = None
+>>>>>>> 5dd1de0 (trading bot update)

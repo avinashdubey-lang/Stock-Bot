@@ -50,7 +50,6 @@ def get_token(symbol):
         if item.get("exch_seg") != "NSE":
             continue
 
-        # FIXED: flexible matching (very important)
         if (
             item.get("symbol") == symbol
             or item.get("symbol") == base_symbol
@@ -135,7 +134,6 @@ def get_latest_candle_stream(smartApi, symbol, interval="FIFTEEN_MINUTE"):
 
             latest = df.iloc[-2]  # last completed candle
 
-            # prevent duplicate processing
             if last_time == latest["time"]:
                 time.sleep(5)
                 continue

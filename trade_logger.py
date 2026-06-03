@@ -53,4 +53,8 @@ class TradeLogger:
             index=False
         )
 
+<<<<<<< HEAD
         print("📁 Trade Saved")
+=======
+        print("📁 Trade Saved")
+>>>>>>> 5dd1de0 (trading bot update)
