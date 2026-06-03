@@ -83,7 +83,6 @@ class PaperBroker:
         self.trade_history.append(trade)
         self.capital += pnl
 
-        # 🔥 IMPORTANT: CLEAR EXIT TRACE
         print(
             f"EXIT TRADE | {trade['symbol']} | "
             f"Exit={exit_price:.2f} | "
@@ -91,8 +90,4 @@ class PaperBroker:
             f"PnL={pnl:.2f}"
         )
 
-<<<<<<< HEAD
         self.position = None
-=======
-        self.position = None
->>>>>>> 5dd1de0 (trading bot update)
