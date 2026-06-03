@@ -4,16 +4,11 @@ import os
 
 class TradeLogger:
 
-    def __init__(
-        self,
-        filename="trade_log.csv"
-    ):
+    def __init__(self, filename="trade_log.csv"):
 
         self.filename = filename
 
-        if not os.path.exists(
-            self.filename
-        ):
+        if not os.path.exists(self.filename):
 
             columns = [
                 "Date",
@@ -27,9 +22,7 @@ class TradeLogger:
                 "PnL"
             ]
 
-            pd.DataFrame(
-                columns=columns
-            ).to_csv(
+            pd.DataFrame(columns=columns).to_csv(
                 self.filename,
                 index=False
             )
@@ -37,44 +30,21 @@ class TradeLogger:
     # ==========================
     # SAVE TRADE
     # ==========================
-
-    def log_trade(
-        self,
-        trade
-    ):
+    def log_trade(self, trade):
 
         row = {
-            "Date":
-            pd.Timestamp.now(),
-
-            "Symbol":
-            trade["symbol"],
-
-            "Direction":
-            trade["direction"],
-
-            "Entry":
-            trade["entry"],
-
-            "Exit":
-            trade["exit"],
-
-            "Target":
-            trade["target"],
-
-            "Stoploss":
-            trade["stoploss"],
-
-            "Reason":
-            trade["reason"],
-
-            "PnL":
-            trade["pnl"]
+            "Date": pd.Timestamp.now(),
+            "Symbol": trade.get("symbol", ""),
+            "Direction": trade.get("direction", ""),
+            "Entry": trade.get("entry", 0),
+            "Exit": trade.get("exit", None),
+            "Target": trade.get("target", 0),
+            "Stoploss": trade.get("stoploss", 0),
+            "Reason": trade.get("reason", ""),
+            "PnL": trade.get("pnl", 0)
         }
 
-        df = pd.DataFrame(
-            [row]
-        )
+        df = pd.DataFrame([row])
 
         df.to_csv(
             self.filename,
@@ -83,6 +53,4 @@ class TradeLogger:
             index=False
         )
 
-        print(
-            "Trade Saved"
-        )
+        print("📁 Trade Saved")
