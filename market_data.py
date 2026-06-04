@@ -64,16 +64,20 @@ def get_token(symbol):
 # CANDLES
 # ==========================
 
-def get_candles(smartApi, symbol,
-                interval="FIFTEEN_MINUTE",
-                days=1):
+def get_candles(smartApi, symbol, interval="FIFTEEN_MINUTE"):
 
     try:
 
         token = get_token(symbol)
 
+        today = dt.datetime.now().date()
+
+        from_date = dt.datetime.combine(
+            today,
+            dt.time(9, 15)
+        )
+
         to_date = dt.datetime.now()
-        from_date = to_date - dt.timedelta(days=days)
 
         params = {
             "exchange": "NSE",
@@ -83,16 +87,33 @@ def get_candles(smartApi, symbol,
             "todate": to_date.strftime("%Y-%m-%d %H:%M")
         }
 
+        print("📥 Fetching candle data...")
+
         candles = smartApi.getCandleData(params)
 
         if not candles or "data" not in candles:
-            return pd.DataFrame(columns=[
-                "time", "open", "high", "low", "close", "volume"
-            ])
+            return pd.DataFrame(
+                columns=[
+                    "time",
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "volume"
+                ]
+            )
 
-        df = pd.DataFrame(candles["data"], columns=[
-            "time", "open", "high", "low", "close", "volume"
-        ])
+        df = pd.DataFrame(
+            candles["data"],
+            columns=[
+                "time",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume"
+            ]
+        )
 
         df["time"] = pd.to_datetime(df["time"])
 
@@ -100,11 +121,22 @@ def get_candles(smartApi, symbol,
 
     except Exception as e:
 
-        print(f"❌ Candle Fetch Error: {e}")
+        print("\n⚠️ SMARTAPI RATE LIMIT / API ERROR")
+        print(e)
 
-        return pd.DataFrame(columns=[
-            "time", "open", "high", "low", "close", "volume"
-        ])
+        print("⏳ Sleeping for 5 minutes...")
+        time.sleep(300)
+
+        return pd.DataFrame(
+            columns=[
+                "time",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume"
+            ]
+        )
 
 
 # ==========================
