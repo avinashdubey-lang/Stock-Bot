@@ -27,7 +27,7 @@ class TradingBot:
     # ==========================
     def login(self):
         self.smartApi, _ = login_user()
-        print("Login Successful")
+
 
     # ==========================
     # RESET DAY
@@ -60,7 +60,6 @@ class TradingBot:
 
         symbol = "BHARTIARTL-EQ"
 
-        print(f"📡 Streaming candles for {symbol}...")
 
         for candle in get_latest_candle_stream(self.smartApi, symbol):
 
