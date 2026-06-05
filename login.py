@@ -1,28 +1,31 @@
+from SmartApi import SmartConnect
+import pyotp
+
 def login_user():
-    try:
-        from SmartApi import SmartConnect
-        import pyotp
 
-        API_KEY = "K9Fhvfho"
-        CLIENT_ID = "AAAN998226"
-        PASSWORD = "3027"
-        TOTP_SECRET = "UA3PJRBKTOTUQSVH67Y4F5ZEZM"
+    api_key = "K9Fhvfho"
+    username = "AAAN998226"
+    password = "3027"
 
-        smartApi = SmartConnect(API_KEY)
-        totp = pyotp.TOTP(TOTP_SECRET).now()
+    totp_secret = "UA3PJRBKTOTUQSVH67Y4F5ZEZM"
 
-        session = smartApi.generateSession(
-            CLIENT_ID,
-            PASSWORD,
-            totp
-        )
+    totp = pyotp.TOTP(totp_secret).now()
 
-        if not session["status"]:
-            raise Exception(f"Login Failed: {session}")
+    smartApi = SmartConnect(api_key=api_key)
 
-        print("Login Successful")
-        return smartApi, session
+    session = smartApi.generateSession(
+        username,
+        password,
+        totp
+    )
 
-    except Exception as e:
-        print("LOGIN ERROR:", e)
-        raise
+    if not session["status"]:
+        raise Exception(session)
+
+    data = session["data"]
+
+    feed_token = data["feedToken"]
+    client_code = data["clientcode"]
+    jwt_token = data["jwtToken"]
+
+    return smartApi, feed_token, client_code, api_key
