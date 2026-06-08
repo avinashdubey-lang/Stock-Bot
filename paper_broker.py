@@ -9,6 +9,7 @@ class PaperBroker:
     # BUY
     # ==========================
     def buy(self, symbol, price, sl, target):
+
         return self.open_trade(
             symbol,
             "BUY",
@@ -21,6 +22,7 @@ class PaperBroker:
     # SELL
     # ==========================
     def sell(self, symbol, price, sl, target):
+
         return self.open_trade(
             symbol,
             "SELL",
@@ -60,7 +62,7 @@ class PaperBroker:
         return self.position
 
     # ==========================
-    # EXIT LOGIC
+    # CHECK EXIT
     # ==========================
     def check_exit(self, current_price):
 
@@ -72,7 +74,7 @@ class PaperBroker:
         target = self.position["target"]
         stoploss = self.position["stoploss"]
 
-        # BUY POSITION
+        # BUY
         if direction == "BUY":
 
             if current_price >= target:
@@ -113,7 +115,7 @@ class PaperBroker:
 
                 return trade
 
-        # SELL POSITION
+        # SELL
         else:
 
             if current_price <= target:
@@ -157,12 +159,39 @@ class PaperBroker:
         return None
 
     # ==========================
-    # CLOSE ALL
+    # FORCE EXIT
     # ==========================
-    def close_all(self, reason="EOD"):
+    def close_all(
+        self,
+        current_price,
+        reason="EOD"
+    ):
 
-        if self.position:
+        if not self.position:
+            return None
 
-            print(f"CLOSED {reason}")
+        entry = self.position["entry"]
 
-            self.position = None
+        if self.position["direction"] == "BUY":
+            pnl = current_price - entry
+        else:
+            pnl = entry - current_price
+
+        trade = {
+            **self.position,
+            "exit": current_price,
+            "reason": reason,
+            "pnl": pnl
+        }
+
+        self.trade_history.append(trade)
+
+        print(
+            f"CLOSED {reason} | "
+            f"Exit={current_price} | "
+            f"PnL={pnl:.2f}"
+        )
+
+        self.position = None
+
+        return trade

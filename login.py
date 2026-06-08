@@ -28,4 +28,10 @@ def login_user():
     client_code = data["clientcode"]
     jwt_token = data["jwtToken"]
 
-    return smartApi, feed_token, client_code, api_key
+    return (
+    smartApi,
+    feed_token,
+    client_code,
+    api_key,
+    jwt_token
+)

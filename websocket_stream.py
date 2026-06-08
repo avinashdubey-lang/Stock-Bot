@@ -1,69 +1,100 @@
-import json
-import websocket
+from SmartApi.smartWebSocketV2 import SmartWebSocketV2
+from market_data import get_token
 
 
-def start_websocket(symbol, callback):
+def start_websocket(
+    smartApi,
+    feed_token,
+    client_code,
+    api_key,
+    symbol,
+    callback
+):
 
-    """
-    PURE WEBSOCKET CLIENT (NO SmartAPI dependency)
-    FIXES:
-    - no start_websocket error
-    - works with websocket-client
-    """
+    symbol_token = get_token(symbol)
 
-    def on_message(ws, message):
+    sws = SmartWebSocketV2(
+        auth_token=feed_token,
+        api_key=api_key,
+        client_code=client_code,
+        feed_token=feed_token
+    )
+
+    correlation_id = "bot_stream"
+    mode = 1  # LTP mode
+
+    token_list = [{
+        "exchangeType": 1,
+        "tokens": [str(symbol_token)]
+    }]
+
+    # ==========================
+    # OPEN CONNECTION
+    # ==========================
+    def on_open(wsapp):
+        print("✅ WebSocket Connected")
+
+        sws.subscribe(
+            correlation_id,
+            mode,
+            token_list
+        )
+
+    # ==========================
+    # DATA HANDLER (FIXED)
+    # ==========================
+    def on_data(wsapp, message):
 
         try:
-            data = json.loads(message)
+            # SmartAPI sometimes sends list inside "data"
+            if isinstance(message, str):
+                import json
+                message = json.loads(message)
 
-            if "data" not in data:
+            data = message.get("data")
+
+            if isinstance(data, list):
+                data = data[0]
+
+            if not data:
                 return
 
-            tick = data["data"]
+            ltp = data.get("ltp")
 
-            if isinstance(tick, list):
-                tick = tick[0]
+            if ltp is None:
+                return
 
             candle = {
-                "time": tick.get("time"),
-                "open": tick.get("open"),
-                "high": tick.get("high"),
-                "low": tick.get("low"),
-                "close": tick.get("close"),
-                "volume": tick.get("volume", 0)
+                "time": data.get("exchange_timestamp"),
+                "open": ltp,
+                "high": ltp,
+                "low": ltp,
+                "close": ltp,
+                "volume": data.get("volume_traded", 0)
             }
 
             callback(candle)
 
         except Exception as e:
-            print("WS ERROR:", e)
+            print("WS DATA ERROR:", e)
 
-
-    def on_error(ws, error):
+    # ==========================
+    # ERROR HANDLER
+    # ==========================
+    def on_error(wsapp, error):
         print("WS ERROR:", error)
 
+    # ==========================
+    # CLOSE HANDLER
+    # ==========================
+    def on_close(wsapp):
+        print("❌ WebSocket Closed")
 
-    def on_close(ws, close_status_code, close_msg):
-        print("WebSocket Closed")
+    sws.on_open = on_open
+    sws.on_data = on_data
+    sws.on_error = on_error
+    sws.on_close = on_close
 
+    print(f"📡 Starting WebSocket for {symbol}")
 
-    def on_open(ws):
-        print("WebSocket Connected")
-
-        # NOTE: This is a generic structure
-        # Angel One REAL WS requires feed_token auth
-        ws.send(json.dumps({
-            "action": "subscribe",
-            "symbol": symbol
-        }))
-
-
-    ws = websocket.WebSocketApp(
-        "wss://example-feed-url",   # placeholder (we fix next step)
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close
-    )
-
-    ws.run_forever()
+    sws.connect()

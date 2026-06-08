@@ -1,4 +1,5 @@
 from datetime import datetime, time
+
 from login import login_user
 from websocket_stream import start_websocket
 from strategy import Strategy
@@ -18,6 +19,7 @@ class TradingBot:
         self.feed_token = None
         self.client_code = None
         self.api_key = None
+        self.jwt_token = None
 
         self.current_day = None
         self.trade_taken_today = False
@@ -26,48 +28,68 @@ class TradingBot:
     # LOGIN
     # ==========================
     def login(self):
+
         (
             self.smartApi,
             self.feed_token,
             self.client_code,
-            self.api_key
+            self.api_key,
+            self.jwt_token
         ) = login_user()
 
-        print("Login Successful")
+        print("✅ LOGIN SUCCESSFUL")
 
     # ==========================
     # RESET DAY
     # ==========================
     def reset_day(self):
+
         self.strategy.reset()
+
         self.trade_taken_today = False
+
         print("\n🔄 NEW DAY RESET DONE")
 
     # ==========================
-    # WEB SOCKET HANDLER
+    # ON NEW CANDLE
     # ==========================
     def on_candle(self, candle):
 
-        now = datetime.now().date()
+        today = datetime.now().date()
 
-        if self.current_day != now:
-            self.current_day = now
+        # ----------------------
+        # Daily Reset
+        # ----------------------
+        if self.current_day != today:
+
+            self.current_day = today
+
             self.reset_day()
 
-        # STEP 1: build opening range from first 2 candles
+        # ----------------------
+        # Opening Range
+        # ----------------------
         if not self.strategy.levels_set:
-            self.strategy.set_opening_range_ws(candle)
 
-        # STEP 2: ignore until levels ready
+            self.strategy.set_opening_range_ws(
+                candle
+            )
+
         if not self.strategy.levels_set:
             return
 
-        # STEP 3: signal check
-        signal = self.strategy.on_candle(candle)
+        # ----------------------
+        # Signal Generation
+        # ----------------------
+        signal = self.strategy.on_candle(
+            candle
+        )
 
         if signal and not self.trade_taken_today:
 
-            print(f"\n📊 SIGNAL: {signal['action']}")
+            print(
+                f"\n📊 SIGNAL: {signal['action']}"
+            )
 
             opened = self.broker.open_trade(
                 signal["symbol"],
@@ -78,7 +100,14 @@ class TradingBot:
             )
 
             if opened:
+
                 self.trade_taken_today = True
+
+                print(
+                    f"🟢 TRADE OPENED: "
+                    f"{signal['action']} "
+                    f"@ {signal['entry']}"
+                )
 
                 self.logger.log_trade({
                     "symbol": signal["symbol"],
@@ -91,14 +120,50 @@ class TradingBot:
                     "pnl": 0
                 })
 
-        # STEP 4: exit logic
+        # ----------------------
+        # Market Close Exit
+        # ----------------------
+        current_time = datetime.now().time()
+
+        if (
+            self.broker.position
+            and current_time >= time(15, 15)
+        ):
+
+            trade = self.broker.close_all(
+                candle["close"],
+                "MARKET_CLOSE"
+            )
+
+            if trade:
+
+                self.logger.log_trade(
+                    trade
+                )
+
+                print(
+                    "🔴 MARKET CLOSE EXIT"
+                )
+
+            return
+
+        # ----------------------
+        # Target / Stoploss Exit
+        # ----------------------
         if self.broker.position:
-            if self.broker.check_exit(candle["close"]):
-                trade = self.broker.close_all("TARGET/SL HIT")
-                self.logger.log_trade(trade)
+
+            trade = self.broker.check_exit(
+                candle["close"]
+            )
+
+            if trade:
+
+                self.logger.log_trade(
+                    trade
+                )
 
     # ==========================
-    # RUN
+    # RUN BOT
     # ==========================
     def run(self):
 
@@ -106,13 +171,25 @@ class TradingBot:
 
         symbol = "BHARTIARTL-EQ"
 
+        print(
+            f"📡 Starting WebSocket for {symbol}"
+        )
+
         start_websocket(
             self.smartApi,
+            self.feed_token,
+            self.client_code,
+            self.api_key,
             symbol,
             self.on_candle
         )
 
 
+# ==========================
+# START
+# ==========================
 if __name__ == "__main__":
+
     bot = TradingBot()
+
     bot.run()
