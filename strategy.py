@@ -1,56 +1,48 @@
-from datetime import time
-
-
 class Strategy:
 
     def __init__(self):
-        self.range_high = None
-        self.range_low = None
+
+        self.high_level = None
+        self.low_level = None
+
         self.levels_set = False
         self.trade_taken = False
-
-        # store first 2 candles for opening range
-        self.buffer = []
 
     # ==========================
     # RESET
     # ==========================
+
     def reset(self):
-        self.range_high = None
-        self.range_low = None
+
+        self.high_level = None
+        self.low_level = None
+
         self.levels_set = False
         self.trade_taken = False
-        self.buffer = []
 
     # ==========================
-    # OPENING RANGE (WS VERSION)
+    # SET LEVELS (FROM REST API)
     # ==========================
-    def set_opening_range_ws(self, candle):
 
-        if self.levels_set:
-            return
+    def set_levels(
+        self,
+        high_level,
+        low_level
+    ):
 
-        # collect first 2 candles only
-        self.buffer.append(candle)
-
-        if len(self.buffer) < 2:
-            return
-
-        c1 = self.buffer[0]
-        c2 = self.buffer[1]
-
-        self.range_high = max(c1["high"], c2["high"])
-        self.range_low = min(c1["low"], c2["low"])
+        self.high_level = high_level
+        self.low_level = low_level
 
         self.levels_set = True
 
-        print("\n📊 OPENING RANGE SET (WS)")
-        print("HIGH :", self.range_high)
-        print("LOW  :", self.range_low)
+        print("\n📊 LEVELS SET")
+        print("HIGH :", self.high_level)
+        print("LOW  :", self.low_level)
 
     # ==========================
     # SIGNAL GENERATION
     # ==========================
+
     def on_candle(self, candle):
 
         if not self.levels_set:
@@ -61,30 +53,44 @@ class Strategy:
 
         close = candle["close"]
 
-        # BREAKOUT BUY
-        if close > self.range_high:
+        # BUY BREAKOUT
+        if close > self.high_level:
+
             self.trade_taken = True
+
+            entry = close
+
+            sl = entry * 0.995
+            target = entry * 1.005
+
             print("📈 BUY BREAKOUT")
 
             return {
                 "action": "BUY",
                 "symbol": "BHARTIARTL-EQ",
-                "entry": close,
-                "sl": self.range_low,
-                "target": close + (close - self.range_low)
+                "entry": entry,
+                "sl": sl,
+                "target": target
             }
 
-        # BREAKOUT SELL
-        if close < self.range_low:
+        # SELL BREAKOUT
+        if close < self.low_level:
+
             self.trade_taken = True
+
+            entry = close
+
+            sl = entry * 1.005
+            target = entry * 0.995
+
             print("📉 SELL BREAKOUT")
 
             return {
                 "action": "SELL",
                 "symbol": "BHARTIARTL-EQ",
-                "entry": close,
-                "sl": self.range_high,
-                "target": close - (self.range_high - close)
+                "entry": entry,
+                "sl": sl,
+                "target": target
             }
 
         return None

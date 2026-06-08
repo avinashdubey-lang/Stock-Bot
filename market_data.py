@@ -1,3 +1,4 @@
+#market_data.py
 import requests
 import pandas as pd
 import datetime as dt
@@ -124,8 +125,8 @@ def get_candles(smartApi, symbol, interval="FIFTEEN_MINUTE"):
         print("\n⚠️ SMARTAPI RATE LIMIT / API ERROR")
         print(e)
 
-        print("⏳ Sleeping for 5 minutes...")
-        time.sleep(300)
+        print("⏳ Sleeping for 10 seconds...")
+        time.sleep(10)
 
         return pd.DataFrame(
             columns=[
@@ -186,4 +187,44 @@ def get_latest_candle_stream(smartApi, symbol, interval="FIFTEEN_MINUTE"):
         except Exception as e:
 
             print(f"❌ Stream Error: {e}")
-            time.sleep(10)
+            time.sleep(60)
+
+# ==========================
+# OPENING LEVELS
+# ==========================
+
+def get_opening_levels(smartApi, symbol):
+
+    df = get_candles(
+        smartApi,
+        symbol,
+        interval="FIFTEEN_MINUTE"
+    )
+
+    if df.empty:
+        raise Exception("No candle data received")
+
+    if len(df) < 3:
+        raise Exception(
+            f"Need at least 3 candles. Got {len(df)}"
+        )
+
+    # Ignore first candle (9:15–9:30)
+    candle2 = df.iloc[1]
+    candle3 = df.iloc[2]
+
+    high_level = max(
+        candle2["high"],
+        candle3["high"]
+    )
+
+    low_level = min(
+        candle2["low"],
+        candle3["low"]
+    )
+
+    print("\n📊 OPENING LEVELS")
+    print(f"HIGH LEVEL: {high_level}")
+    print(f"LOW LEVEL : {low_level}")
+
+    return high_level, low_level

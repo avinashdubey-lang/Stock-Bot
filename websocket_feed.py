@@ -6,82 +6,153 @@ class CandleBuilder:
 
     def __init__(self):
         self.current_candle = None
-        self.last_minute = None
-        self.candles = []
+        self.current_bucket = None
+
+    def get_bucket(self, ts):
+
+        minute = (ts.minute // 15) * 15
+
+        return ts.replace(
+            minute=minute,
+            second=0,
+            microsecond=0
+        )
 
     def on_tick(self, tick):
 
-        ltp = tick["last_traded_price"]
-        ts = datetime.fromtimestamp(tick["exchange_timestamp"] / 1000)
+        ltp = tick["last_traded_price"]/100
 
-        minute = ts.replace(second=0, microsecond=0)
+        ts = datetime.fromtimestamp(
+            tick["exchange_timestamp"] / 1000
+        )
 
-        # new candle starts
-        if self.last_minute != minute:
+        bucket = self.get_bucket(ts)
 
-            if self.current_candle:
-                self.candles.append(self.current_candle)
+        # First candle
+        if self.current_bucket is None:
+
+            self.current_bucket = bucket
 
             self.current_candle = {
-                "time": minute,
+                "time": bucket,
                 "open": ltp,
                 "high": ltp,
                 "low": ltp,
                 "close": ltp
             }
 
-            self.last_minute = minute
+            return None
 
-        else:
-            self.current_candle["high"] = max(self.current_candle["high"], ltp)
-            self.current_candle["low"] = min(self.current_candle["low"], ltp)
+        # Same candle
+        if bucket == self.current_bucket:
+
+            self.current_candle["high"] = max(
+                self.current_candle["high"],
+                ltp
+            )
+
+            self.current_candle["low"] = min(
+                self.current_candle["low"],
+                ltp
+            )
+
             self.current_candle["close"] = ltp
 
-        return self.current_candle
+            return None
+
+        # Completed candle
+        completed_candle = self.current_candle
+
+        self.current_bucket = bucket
+
+        self.current_candle = {
+            "time": bucket,
+            "open": ltp,
+            "high": ltp,
+            "low": ltp,
+            "close": ltp
+        }
+
+        return completed_candle
 
 
-def start_websocket(smartApi, token, symboltoken, strategy):
+def start_websocket(
+    smartApi,
+    feed_token,
+    client_code,
+    api_key,
+    symboltoken,
+    callback
+):
 
     candle_builder = CandleBuilder()
 
     sws = SmartWebSocketV2(
-        auth_token=smartApi.getfeedToken(),
-        api_key=smartApi.api_key,
-        client_code=smartApi.client_code,
-        feed_token=smartApi.getfeedToken()
+        auth_token=feed_token,
+        api_key=api_key,
+        client_code=client_code,
+        feed_token=feed_token
     )
 
     correlation_id = "stream_1"
-    mode = 2   # LTP mode
+
+    mode = 2
 
     tokens = [{
-        "exchangeType": 1,      # NSE
+        "exchangeType": 1,
         "tokens": [symboltoken]
     }]
 
     def on_data(wsapp, message):
 
-        tick = message["data"][0]
+        try:
+            tick = message
+           
+            completed_candle = (
+                candle_builder.on_tick(tick)
+            )
 
-        candle = candle_builder.on_tick(tick)
+            if completed_candle is None:
+                return
 
-        if not candle:
-            return
+            print(
+                f"\n15M CLOSED | "
+                f"{completed_candle['time']} | "
+                f"O:{completed_candle['open']} "
+                f"H:{completed_candle['high']} "
+                f"L:{completed_candle['low']} "
+                f"C:{completed_candle['close']}"
+            )
 
-        signal = strategy.on_candle(candle)
+            callback(completed_candle)
 
-        if signal:
-            print("\n🚨 SIGNAL:", signal)
+        except Exception as e:
+
+            print(
+                f"❌ ON_DATA ERROR: {e}"
+            )
 
     def on_open(wsapp):
-        print("WebSocket Connected")
-        sws.subscribe(correlation_id, mode, tokens)
+
+        print("✅ WebSocket Connected")
+
+        sws.subscribe(
+            correlation_id,
+            mode,
+            tokens
+        )
 
     def on_error(wsapp, error):
-        print("WS ERROR:", error)
+
+        print(
+            f"❌ WS ERROR: {error}"
+        )
 
     def on_close(wsapp):
-        print("WebSocket Closed")
+
+        print(
+            "🔴 WebSocket Closed"
+        )
 
     sws.on_open = on_open
     sws.on_data = on_data
