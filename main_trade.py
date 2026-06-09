@@ -1,9 +1,13 @@
-from datetime import datetime, time
+#my main
+from datetime import datetime
+import time
+from datetime import time as dtime
 
 from login import login_user
 from market_data import get_opening_levels, get_token
 from websocket_feed import start_websocket
 from strategy import Strategy
+from execution_engine import ExecutionEngine
 from paper_broker import PaperBroker
 from trade_logger import TradeLogger
 
@@ -16,6 +20,8 @@ class TradingBot:
         self.broker = PaperBroker()
         self.logger = TradeLogger()
 
+        self.execution_engine = ExecutionEngine(self.broker, self.logger)
+
         self.smartApi = None
         self.feed_token = None
         self.client_code = None
@@ -23,12 +29,10 @@ class TradingBot:
         self.jwt_token = None
 
         self.current_day = None
-        self.trade_taken_today = False
 
     # ==========================
     # LOGIN
     # ==========================
-
     def login(self):
 
         (
@@ -44,156 +48,68 @@ class TradingBot:
     # ==========================
     # RESET DAY
     # ==========================
-
     def reset_day(self):
 
         self.strategy.reset()
-
-        self.trade_taken_today = False
+        self.execution_engine.reset()
 
         print("\n🔄 NEW DAY RESET DONE")
 
     # ==========================
-    # ON NEW CANDLE
+    # ON CANDLE
     # ==========================
-
     def on_candle(self, candle):
 
         today = datetime.now().date()
 
-        # ----------------------
-        # Daily Reset
-        # ----------------------
+
+        # reset daily state
         if self.current_day != today:
-
             self.current_day = today
-
             self.reset_day()
 
-        # ----------------------
-        # Opening Range
-        # ----------------------
-        if not self.strategy.levels_set:
-
-            self.strategy.set_opening_range_ws(
-                candle
-            )
-
+        # build opening range
         if not self.strategy.levels_set:
             return
 
-        # ----------------------
-        # Signal Generation
-        # ----------------------
-        signal = self.strategy.on_candle(
-            candle
-        )
+        # generate signal
+        signal = self.strategy.on_candle(candle)
 
-        if signal and not self.trade_taken_today:
+        if signal:
+            self.execution_engine.on_signal(signal)
 
-            print(
-                f"\n📊 SIGNAL: {signal['action']}"
-            )
 
-            opened = self.broker.open_trade(
-                signal["symbol"],
-                signal["action"],
-                signal["entry"],
-                signal["target"],
-                signal["sl"]
-            )
-
-            if opened:
-
-                self.trade_taken_today = True
-
-                print(
-                    f"🟢 TRADE OPENED: "
-                    f"{signal['action']} "
-                    f"@ {signal['entry']}"
-                )
-
-                self.logger.log_trade({
-                    "symbol": signal["symbol"],
-                    "direction": signal["action"],
-                    "entry": signal["entry"],
-                    "exit": None,
-                    "target": signal["target"],
-                    "stoploss": signal["sl"],
-                    "reason": "OPEN",
-                    "pnl": 0
-                })
-
-        # ----------------------
-        # Market Close Exit
-        # ----------------------
-        current_time = datetime.now().time()
-
-        if (
-            self.broker.position
-            and current_time >= time(15, 15)
-        ):
-
-            trade = self.broker.close_all(
-                candle["close"],
-                "MARKET_CLOSE"
-            )
-
-            if trade:
-
-                self.logger.log_trade(
-                    trade
-                )
-
-                print(
-                    "🔴 MARKET CLOSE EXIT"
-                )
-
-            return
-
-        # ----------------------
-        # Target / Stoploss Exit
-        # ----------------------
-        if self.broker.position:
-
-            trade = self.broker.check_exit(
-                candle["close"]
-            )
-
-            if trade:
-
-                self.logger.log_trade(
-                    trade
-                )
+        # ALWAYS send tick to engine (ONLY ONCE)
+        self.execution_engine.on_tick(candle)
 
     # ==========================
-    # RUN BOT
+    # RUN
     # ==========================
-
     def run(self):
 
         self.login()
         self.current_day = datetime.now().date()
 
-        import time
         time.sleep(2)
 
         symbol = "BHARTIARTL-EQ"
         symboltoken = get_token(symbol)
 
-        # 1. GET OPENING LEVELS (REST ONCE)
+        print("⏳ Waiting for 10:00 AM to fetch opening levels...")
+
+        while datetime.now().time() < dtime(10, 0):
+            time.sleep(1)
+
         high_level, low_level = get_opening_levels(
             self.smartApi,
             symbol
         )
 
-        # 2. SET STRATEGY LEVELS
         self.strategy.set_levels(high_level, low_level)
 
-        print(f"📡 Starting WebSocket for {symbol}")
+        print("✅ Opening levels set at 10:00 AM")
 
-        # 3. RECONNECT LOOP (ONLY HERE)
-        import time
+        print(f"📡 Starting WebSocket for {symbol}")
 
         wait = 5
 
@@ -210,6 +126,8 @@ class TradingBot:
                     self.on_candle
                 )
 
+                wait = 5
+
             except Exception as e:
                 print(f"\n❌ WebSocket Crashed: {e}")
                 print(f"🔄 Reconnecting in {wait} seconds...")
@@ -217,11 +135,7 @@ class TradingBot:
                 time.sleep(wait)
                 wait = min(wait * 2, 60)
 
-# ==========================
-# START
-# ==========================
+
 if __name__ == "__main__":
-
     bot = TradingBot()
-
     bot.run()

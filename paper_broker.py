@@ -1,3 +1,4 @@
+#paper_brokker.py
 class PaperBroker:
 
     def __init__(self):
@@ -9,7 +10,6 @@ class PaperBroker:
     # BUY
     # ==========================
     def buy(self, symbol, price, sl, target):
-
         return self.open_trade(
             symbol,
             "BUY",
@@ -22,7 +22,6 @@ class PaperBroker:
     # SELL
     # ==========================
     def sell(self, symbol, price, sl, target):
-
         return self.open_trade(
             symbol,
             "SELL",
@@ -62,7 +61,7 @@ class PaperBroker:
         return self.position
 
     # ==========================
-    # CHECK EXIT
+    # EXIT LOGIC
     # ==========================
     def check_exit(self, current_price):
 
@@ -74,7 +73,7 @@ class PaperBroker:
         target = self.position["target"]
         stoploss = self.position["stoploss"]
 
-        # BUY
+        # BUY POSITION
         if direction == "BUY":
 
             if current_price >= target:
@@ -115,7 +114,7 @@ class PaperBroker:
 
                 return trade
 
-        # SELL
+        # SELL POSITION
         else:
 
             if current_price <= target:
@@ -159,39 +158,12 @@ class PaperBroker:
         return None
 
     # ==========================
-    # FORCE EXIT
+    # CLOSE ALL
     # ==========================
-    def close_all(
-        self,
-        current_price,
-        reason="EOD"
-    ):
+    def close_all(self, reason, exit_price):
 
-        if not self.position:
-            return None
+        if self.position:
 
-        entry = self.position["entry"]
+            print(f"CLOSED {reason}")
 
-        if self.position["direction"] == "BUY":
-            pnl = current_price - entry
-        else:
-            pnl = entry - current_price
-
-        trade = {
-            **self.position,
-            "exit": current_price,
-            "reason": reason,
-            "pnl": pnl
-        }
-
-        self.trade_history.append(trade)
-
-        print(
-            f"CLOSED {reason} | "
-            f"Exit={current_price} | "
-            f"PnL={pnl:.2f}"
-        )
-
-        self.position = None
-
-        return trade
+            self.position = None
