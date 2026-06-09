@@ -45,14 +45,13 @@ class ExecutionEngine:
     # -----------------------
     # EXIT HANDLER
     # -----------------------
-    def on_tick(self, candle):
+    def on_tick(self, ltp):
 
         if not self.broker.position:
             return
 
         pos = self.broker.position
 
-        ltp = candle["close"]
         now = datetime.now().time()
 
         # -----------------------

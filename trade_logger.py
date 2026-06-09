@@ -1,3 +1,4 @@
+#trade_logger.py
 import pandas as pd
 import os
 
@@ -31,6 +32,10 @@ class TradeLogger:
     # SAVE TRADE
     # ==========================
     def log_trade(self, trade):
+
+        if trade is None:
+            print("⚠️ No trade to log")
+            return
 
         row = {
             "Date": pd.Timestamp.now(),

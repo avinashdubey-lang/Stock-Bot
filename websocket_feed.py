@@ -8,29 +8,15 @@ class CandleBuilder:
         self.current_candle = None
         self.current_bucket = None
 
-    def get_bucket(self, ts):
-
+    def bucket(self, ts):
         minute = (ts.minute // 15) * 15
+        return ts.replace(minute=minute, second=0, microsecond=0)
 
-        return ts.replace(
-            minute=minute,
-            second=0,
-            microsecond=0
-        )
+    def on_tick(self, ltp, ts):
 
-    def on_tick(self, tick):
+        bucket = self.bucket(ts)
 
-        ltp = tick["last_traded_price"]/100
-
-        ts = datetime.fromtimestamp(
-            tick["exchange_timestamp"] / 1000
-        )
-
-        bucket = self.get_bucket(ts)
-
-        # First candle
         if self.current_bucket is None:
-
             self.current_bucket = bucket
 
             self.current_candle = {
@@ -40,31 +26,18 @@ class CandleBuilder:
                 "low": ltp,
                 "close": ltp
             }
-
             return None
 
-        # Same candle
         if bucket == self.current_bucket:
 
-            self.current_candle["high"] = max(
-                self.current_candle["high"],
-                ltp
-            )
-
-            self.current_candle["low"] = min(
-                self.current_candle["low"],
-                ltp
-            )
-
+            self.current_candle["high"] = max(self.current_candle["high"], ltp)
+            self.current_candle["low"] = min(self.current_candle["low"], ltp)
             self.current_candle["close"] = ltp
-
             return None
 
-        # Completed candle
-        completed_candle = self.current_candle
+        completed = self.current_candle
 
         self.current_bucket = bucket
-
         self.current_candle = {
             "time": bucket,
             "open": ltp,
@@ -73,17 +46,11 @@ class CandleBuilder:
             "close": ltp
         }
 
-        return completed_candle
+        return completed
 
 
-def start_websocket(
-    smartApi,
-    feed_token,
-    client_code,
-    api_key,
-    symboltoken,
-    callback
-):
+def start_websocket(api, feed_token, client_code, api_key,
+                    symboltoken, strategy, execution_engine):
 
     candle_builder = CandleBuilder()
 
@@ -94,10 +61,6 @@ def start_websocket(
         feed_token=feed_token
     )
 
-    correlation_id = "stream_1"
-
-    mode = 2
-
     tokens = [{
         "exchangeType": 1,
         "tokens": [symboltoken]
@@ -107,52 +70,37 @@ def start_websocket(
 
         try:
             tick = message
-           
-            completed_candle = (
-                candle_builder.on_tick(tick)
-            )
 
-            if completed_candle is None:
-                return
+            ltp = tick["last_traded_price"] / 100
+            ts = datetime.fromtimestamp(tick["exchange_timestamp"] / 1000)
 
-            print(
-                f"\n15M CLOSED | "
-                f"{completed_candle['time']} | "
-                f"O:{completed_candle['open']} "
-                f"H:{completed_candle['high']} "
-                f"L:{completed_candle['low']} "
-                f"C:{completed_candle['close']}"
-            )
+            # -----------------------
+            # 1. EXECUTION ENGINE (LIVE TICK)
+            # -----------------------
+            execution_engine.on_tick(ltp)
 
-            callback(completed_candle)
+            # -----------------------
+            # 2. CANDLE ENGINE
+            # -----------------------
+            candle = candle_builder.on_tick(ltp, ts)
+
+            if candle:
+                print(f"\n15M CLOSED | {candle}")
+
+                strategy(candle)
 
         except Exception as e:
-
-            print(
-                f"❌ ON_DATA ERROR: {e}"
-            )
+            print("❌ ON_DATA ERROR:", e)
 
     def on_open(wsapp):
-
         print("✅ WebSocket Connected")
-
-        sws.subscribe(
-            correlation_id,
-            mode,
-            tokens
-        )
+        sws.subscribe("stream_1", 2, tokens)
 
     def on_error(wsapp, error):
-
-        print(
-            f"❌ WS ERROR: {error}"
-        )
+        print("❌ WS ERROR:", error)
 
     def on_close(wsapp):
-
-        print(
-            "🔴 WebSocket Closed"
-        )
+        print("🔴 WS CLOSED")
 
     sws.on_open = on_open
     sws.on_data = on_data

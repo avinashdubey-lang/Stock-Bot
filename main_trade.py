@@ -79,9 +79,6 @@ class TradingBot:
             self.execution_engine.on_signal(signal)
 
 
-        # ALWAYS send tick to engine (ONLY ONCE)
-        self.execution_engine.on_tick(candle)
-
     # ==========================
     # RUN
     # ==========================
@@ -100,12 +97,28 @@ class TradingBot:
         while datetime.now().time() < dtime(10, 0):
             time.sleep(1)
 
-        high_level, low_level = get_opening_levels(
-            self.smartApi,
-            symbol
-        )
+        while True:
 
-        self.strategy.set_levels(high_level, low_level)
+            try:
+
+                high_level, low_level = get_opening_levels(
+                    self.smartApi,
+                    symbol
+                )
+
+                self.strategy.set_levels(
+                    high_level,
+                    low_level
+                )
+
+                break
+
+            except Exception as e:
+
+                print(f"\n⚠️ OPENING LEVEL FETCH FAILED: {e}")
+                print("⏳ Retrying in 10 seconds...")
+
+                time.sleep(10)
 
         print("✅ Opening levels set at 10:00 AM")
 
@@ -123,7 +136,8 @@ class TradingBot:
                     self.client_code,
                     self.api_key,
                     symboltoken,
-                    self.on_candle
+                    self.on_candle,
+                    self.execution_engine
                 )
 
                 wait = 5
