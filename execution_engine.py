@@ -6,6 +6,7 @@ class ExecutionEngine:
     def __init__(self, broker, logger):
         self.broker = broker
         self.logger = logger
+        self.trading_done = False
 
     # -----------------------
     # RESET
@@ -47,6 +48,9 @@ class ExecutionEngine:
     # -----------------------
     def on_tick(self, ltp):
 
+        if self.trading_done:
+            return
+
         if not self.broker.position:
             return
 
@@ -61,6 +65,8 @@ class ExecutionEngine:
             trade = self.broker.close_all("EOD_EXIT", ltp)
             self.logger.log_trade(trade)
             print("🔴 EOD EXIT")
+
+            self.trading_done = True
             return
 
         direction = pos["direction"]
@@ -74,6 +80,8 @@ class ExecutionEngine:
 
             if ltp <= sl:
                 trade = self.broker.close_all("SL_HIT", ltp)
+                self.trading_done = True
+
                 self.logger.log_trade(trade)
                 print("❌ SL HIT (BUY)")
                 return
@@ -82,6 +90,8 @@ class ExecutionEngine:
                 trade = self.broker.close_all("TARGET_HIT", ltp)
                 self.logger.log_trade(trade)
                 print("🎯 TARGET HIT (BUY)")
+
+                self.trading_done = True
                 return
 
         # -----------------------
@@ -91,6 +101,8 @@ class ExecutionEngine:
 
             if ltp >= sl:
                 trade = self.broker.close_all("SL_HIT", ltp)
+                self.trading_done = True
+                
                 self.logger.log_trade(trade)
                 print("❌ SL HIT (SELL)")
                 return
@@ -99,6 +111,8 @@ class ExecutionEngine:
                 trade = self.broker.close_all("TARGET_HIT", ltp)
                 self.logger.log_trade(trade)
                 print("🎯 TARGET HIT (SELL)")
+
+                self.trading_done = True
                 return
             
         return None
