@@ -170,13 +170,8 @@ for current_day in days:
                     candle["Close"]
                 )
 
-                target = entry * (
-                    1 + TARGET_PERCENT/100
-                )
-
-                sl = entry * (
-                    1 - SL_PERCENT/100
-                )
+                target = entry * 1.005
+                sl = entry * 0.995
 
                 # Quantity based on leveraged capital
 
@@ -199,13 +194,8 @@ for current_day in days:
                     candle["Close"]
                 )
 
-                target = entry * (
-                    1 - TARGET_PERCENT/100
-                )
-
-                sl = entry * (
-                    1 + SL_PERCENT/100
-                )
+                target = entry * 0.995
+                sl = entry * 1.005
 
                 quantity = (
                     effective_capital / entry
