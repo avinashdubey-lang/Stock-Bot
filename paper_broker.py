@@ -162,8 +162,31 @@ class PaperBroker:
     # ==========================
     def close_all(self, reason, exit_price):
 
-        if self.position:
+        if self.position is None:
+            print("⚠️ close_all called but no position")
+            return None
 
-            print(f"CLOSED {reason}")
+        position = self.position.copy()   # 🔥 IMPORTANT SAFE COPY
 
-            self.position = None
+        direction = position["direction"]
+        entry = position["entry"]
+
+        if direction == "BUY":
+            pnl = exit_price - entry
+        else:
+            pnl = entry - exit_price
+
+        trade = {
+            **position,
+            "exit": exit_price,
+            "reason": reason,
+            "pnl": pnl
+        }
+
+        self.trade_history.append(trade)
+
+        print(f"CLOSED {reason} @ {exit_price}")
+
+        self.position = None   # clear AFTER building trade
+
+        return trade

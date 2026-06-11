@@ -7,7 +7,7 @@ import pandas as pd
 
 SYMBOL = "BHARTIARTL.NS"
 
-PERIOD = "60d"
+PERIOD = "30d"
 INTERVAL = "15m"
 
 TARGET_PERCENT = 0.5

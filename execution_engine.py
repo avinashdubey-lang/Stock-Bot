@@ -3,9 +3,10 @@ from datetime import datetime, time
 
 class ExecutionEngine:
 
-    def __init__(self, broker, logger):
+    def __init__(self, broker, logger, risk_manager):
         self.broker = broker
         self.logger = logger
+        self.risk = risk_manager
         self.trading_done = False
 
     # -----------------------
@@ -18,6 +19,11 @@ class ExecutionEngine:
     # ENTRY HANDLER
     # -----------------------
     def on_signal(self, signal):
+
+        # 🛡 RISK CHECK FIRST
+        if not self.risk.can_take_trade():
+            print("⛔ TRADE BLOCKED BY RISK MANAGER")
+            return
 
         if self.broker.position:
             return  # only 1 trade at a time
@@ -62,11 +68,15 @@ class ExecutionEngine:
         # EOD EXIT (STRICT)
         # -----------------------
         if now >= time(14, 59):
+
             trade = self.broker.close_all("EOD_EXIT", ltp)
-            self.logger.log_trade(trade)
-            print("🔴 EOD EXIT")
+
+            if trade:
+                self.risk.update_pnl(trade["pnl"])
+                self.logger.log_trade(trade)
 
             self.trading_done = True
+            print("🔴 EOD EXIT")
             return
 
         direction = pos["direction"]
@@ -79,40 +89,57 @@ class ExecutionEngine:
         if direction == "BUY":
 
             if ltp <= sl:
-                trade = self.broker.close_all("SL_HIT", ltp)
-                self.trading_done = True
 
-                self.logger.log_trade(trade)
+                trade = self.broker.close_all("SL_HIT", ltp)
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
+
+                self.trading_done = True
                 print("❌ SL HIT (BUY)")
                 return
 
+
             if ltp >= target:
+
                 trade = self.broker.close_all("TARGET_HIT", ltp)
-                self.logger.log_trade(trade)
-                print("🎯 TARGET HIT (BUY)")
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
 
                 self.trading_done = True
+                print("🎯 TARGET HIT (BUY)")
                 return
 
         # -----------------------
         # SELL LOGIC
         # -----------------------
         else:
-
             if ltp >= sl:
+
                 trade = self.broker.close_all("SL_HIT", ltp)
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
+
                 self.trading_done = True
-                
-                self.logger.log_trade(trade)
                 print("❌ SL HIT (SELL)")
                 return
 
+
             if ltp <= target:
+
                 trade = self.broker.close_all("TARGET_HIT", ltp)
-                self.logger.log_trade(trade)
-                print("🎯 TARGET HIT (SELL)")
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
 
                 self.trading_done = True
-                return
+                print("🎯 TARGET HIT (SELL)")
+                return  
             
         return None
