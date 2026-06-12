@@ -1,0 +1,11 @@
+# config.py
+
+MODE = "PAPER"       # "PAPER" or "LIVE"
+
+SYMBOL = "BHARTIARTL-EQ"
+
+QUANTITY = 1
+
+EXCHANGE = "NSE"
+
+PRODUCT_TYPE = "INTRADAY"

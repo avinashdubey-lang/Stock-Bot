@@ -7,6 +7,7 @@ from login import login_user
 from market_data import get_opening_levels, get_token
 from websocket_feed import start_websocket
 from strategy import Strategy
+from risk_manager import RiskManager
 from execution_engine import ExecutionEngine
 from paper_broker import PaperBroker
 from trade_logger import TradeLogger
@@ -20,7 +21,13 @@ class TradingBot:
         self.broker = PaperBroker()
         self.logger = TradeLogger()
 
-        self.execution_engine = ExecutionEngine(self.broker, self.logger)
+        self.risk_manager = RiskManager()
+
+        self.execution_engine = ExecutionEngine(
+            self.broker,
+            self.logger,
+            self.risk_manager
+        )
 
         self.smartApi = None
         self.feed_token = None
