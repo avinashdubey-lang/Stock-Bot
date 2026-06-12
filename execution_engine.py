@@ -13,7 +13,7 @@ class ExecutionEngine:
     # RESET
     # -----------------------
     def reset(self):
-        pass  # placeholder for future risk/session state
+       self.trading_done = False
 
     # -----------------------
     # ENTRY HANDLER
@@ -28,13 +28,19 @@ class ExecutionEngine:
         if self.broker.position:
             return  # only 1 trade at a time
 
-        self.broker.open_trade(
+        trade = self.broker.open_trade(
             signal["symbol"],
             signal["action"],
             signal["entry"],
             signal["target"],
             signal["sl"]
         )
+
+        if not trade:
+            print("❌ ORDER REJECTED")
+            return
+
+        self.risk.record_trade()
 
         print(f"🟢 TRADE OPENED: {signal['action']} @ {signal['entry']}")
 

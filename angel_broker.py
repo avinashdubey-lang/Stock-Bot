@@ -54,10 +54,17 @@ class AngelBroker:
             "quantity": self.quantity
         }
 
-        response = self.obj.placeOrder(order_params)
+        try:
+            response = self.obj.placeOrder(order_params)
+        except Exception as e:
+            print("❌ BROKER ERROR:", e)
+            return None
+
+        if not response or response.get("status") == False:
+            print("❌ ORDER FAILED:", response)
+            return None
 
         print("ORDER RESPONSE:", response)
-
         return response
 
     # ==========================
@@ -70,7 +77,16 @@ class AngelBroker:
 
         transaction_type = "BUY" if direction == "BUY" else "SELL"
 
-        order_id = self._place_order(symbol, transaction_type)
+        response = self._place_order(symbol, transaction_type)
+
+        order_id = None
+
+        if response:
+            order_id = (
+                response.get("data", {}).get("orderid")
+                or response.get("orderid")
+                or response
+            )
 
         self.position = {
             "symbol": symbol,
@@ -102,6 +118,12 @@ class AngelBroker:
             transaction_type = "SELL"
         else:
             transaction_type = "BUY"
+
+        token = self._get_token(symbol)
+
+        if not token:
+            print("❌ CLOSE FAILED: invalid token")
+            return None
 
         self._place_order(symbol, transaction_type)
 

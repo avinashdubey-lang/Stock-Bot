@@ -1,3 +1,4 @@
+from config import SYMBOL
 class Strategy:
 
     def __init__(self):
@@ -67,7 +68,7 @@ class Strategy:
 
             return {
                 "action": "BUY",
-                "symbol": "BHARTIARTL-EQ",
+                "symbol": SYMBOL,
                 "entry": entry,
                 "sl": sl,
                 "target": target
@@ -87,7 +88,7 @@ class Strategy:
 
             return {
                 "action": "SELL",
-                "symbol": "BHARTIARTL-EQ",
+                "symbol": SYMBOL,
                 "entry": entry,
                 "sl": sl,
                 "target": target

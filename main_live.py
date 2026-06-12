@@ -1,4 +1,4 @@
-from config import MODE, QUANTITY
+from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 
 from strategy import Strategy
 from execution_engine import ExecutionEngine
@@ -11,6 +11,9 @@ from angel_broker import AngelBroker
 from live_feed import LiveFeed
 
 
+# ==========================
+# BROKER CREATION
+# ==========================
 def create_broker():
 
     if MODE == "PAPER":
@@ -20,14 +23,17 @@ def create_broker():
     print("🔥 LIVE MODE ACTIVE")
 
     return AngelBroker(
-        api_key="YOUR_API_KEY",
-        client_code="YOUR_CLIENT_CODE",
-        password="YOUR_PASSWORD",
-        totp="YOUR_TOTP",
+        api_key=API_KEY,
+        client_code=CLIENT_CODE,
+        password=PASSWORD,
+        totp=TOTP_SECRET,
         quantity=QUANTITY
     )
 
 
+# ==========================
+# INIT SYSTEM COMPONENTS
+# ==========================
 broker = create_broker()
 logger = TradeLogger()
 risk = RiskManager()
@@ -36,7 +42,7 @@ engine = ExecutionEngine(broker, logger, risk)
 strategy = Strategy()
 
 
-# ⚡ IMPORTANT: set levels (temporary static)
+# ⚡ IMPORTANT: SET STRATEGY LEVELS
 strategy.set_levels(
     high_level=1803,
     low_level=1795
@@ -44,7 +50,7 @@ strategy.set_levels(
 
 
 # ==========================
-# CALLBACK (CORE LINK)
+# TICK CALLBACK (CORE LOOP)
 # ==========================
 def on_tick(price):
 
@@ -59,13 +65,30 @@ def on_tick(price):
 
 
 # ==========================
-# LIVE FEED START
+# LIVE FEED SETUP
 # ==========================
-feed = LiveFeed(
-    client_code="YOUR_CLIENT_CODE",
-    api_key="YOUR_API_KEY",
-    token="YOUR_SESSION_TOKEN",   # from login session
-    on_tick=on_tick
-)
+def create_feed():
 
-feed.start()
+    if MODE == "PAPER":
+        print("🧪 PAPER FEED MODE")
+        return None
+
+    # IMPORTANT: reuse same session from broker
+    return LiveFeed(
+        client_code=CLIENT_CODE,
+        api_key=API_KEY,
+        feed_token=broker.feed_token,
+        on_tick=on_tick
+    )
+
+
+feed = create_feed()
+
+
+# ==========================
+# START SYSTEM
+# ==========================
+if feed:
+    feed.start()
+else:
+    print("🧪 Running in PAPER MODE (no live feed)")
