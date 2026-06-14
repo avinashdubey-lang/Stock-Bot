@@ -7,11 +7,11 @@ import pandas as pd
 
 SYMBOL = "BHARTIARTL.NS"
 
-PERIOD = "30d"
+PERIOD = "60d"
 INTERVAL = "15m"
 
-TARGET_PERCENT = 0.5
-SL_PERCENT = 0.5
+TARGET_PERCENT = 0.525
+SL_PERCENT = 0.4873
 
 INITIAL_CAPITAL = 10000
 
@@ -170,8 +170,8 @@ for current_day in days:
                     candle["Close"]
                 )
 
-                target = entry * 1.005
-                sl = entry * 0.995
+                target = entry * (1+TARGET_PERCENT/100)
+                sl = entry * (1-SL_PERCENT/100)
 
                 # Quantity based on leveraged capital
 
@@ -194,8 +194,8 @@ for current_day in days:
                     candle["Close"]
                 )
 
-                target = entry * 0.995
-                sl = entry * 1.005
+                target = entry *(1-TARGET_PERCENT/100)
+                sl = entry *(1+SL_PERCENT/100)
 
                 quantity = (
                     effective_capital / entry
