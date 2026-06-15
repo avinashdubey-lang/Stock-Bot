@@ -9,6 +9,7 @@ from paper_broker import PaperBroker
 from angel_broker import AngelBroker
 
 from live_feed import LiveFeed
+from instrument_lookup import InstrumentLookup
 
 
 # ==========================
@@ -42,11 +43,6 @@ engine = ExecutionEngine(broker, logger, risk)
 strategy = Strategy()
 
 
-# ⚡ IMPORTANT: SET STRATEGY LEVELS
-strategy.set_levels(
-    high_level=1803,
-    low_level=1795
-)
 
 
 # ==========================
@@ -77,8 +73,10 @@ def create_feed():
     return LiveFeed(
         client_code=CLIENT_CODE,
         api_key=API_KEY,
+        auth_token=broker.jwt_token,
         feed_token=broker.feed_token,
-        on_tick=on_tick
+        on_tick=on_tick,
+        lookup=InstrumentLookup()
     )
 
 

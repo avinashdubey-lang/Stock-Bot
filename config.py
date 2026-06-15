@@ -1,6 +1,6 @@
 # config.py
 
-MODE = "PAPER"       # "PAPER" or "LIVE"
+MODE = "LIVE"       # "PAPER" or "LIVE"
 
 SYMBOL = "BHARTIARTL-EQ"
 
@@ -11,7 +11,7 @@ EXCHANGE = "NSE"
 PRODUCT_TYPE = "INTRADAY"
 
 # Angel One (used only in LIVE mode)
-API_KEY = ""
-CLIENT_CODE = ""
-PASSWORD = ""
-TOTP_SECRET = ""
+API_KEY = "K9Fhvfho"
+CLIENT_CODE = "AAAN998226"
+PASSWORD = "3027"
+TOTP_SECRET = "UA3PJRBKTOTUQSVH67Y4F5ZEZM"

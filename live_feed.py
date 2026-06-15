@@ -4,20 +4,29 @@ import json
 
 class LiveFeed:
 
-    def __init__(self, client_code, api_key, feed_token, on_tick):
+    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup):
 
         self.client_code = client_code
         self.api_key = api_key
+        self.auth_token = auth_token
         self.feed_token = feed_token
         self.on_tick = on_tick
+        self.lookup = lookup
 
-        self.ws = SmartWebSocketV2(self.api_key, self.client_code, self.feed_token)
+        self.ws = SmartWebSocketV2(
+        auth_token=self.feed_token,
+        api_key=self.api_key,
+        client_code=self.client_code,
+        feed_token=self.feed_token
+    )
 
+        # bind callbacks
         self.ws.on_open = self.on_open
-        self.ws.on_message = self.on_message
+        self.ws.on_data = self.on_message
         self.ws.on_error = self.on_error
         self.ws.on_close = self.on_close
-
+        print("WS OBJECT:", self.ws)
+        print("ON MESSAGE:", self.ws.on_message)
     # ==========================
     # CONNECT
     # ==========================
@@ -25,40 +34,47 @@ class LiveFeed:
 
         print("🔌 Connecting to Live Market Feed...")
         self.ws.connect()
+        print("WAITING FOR STREAM DATA...")
 
     # ==========================
-    # SUBSCRIBE
+    # SUBSCRIBE (THIS IS THE IMPORTANT PART)
     # ==========================
+
     def on_open(self, ws):
 
         print("✅ LIVE FEED CONNECTED")
 
-        # TEMP FIX: replace later with dynamic symbol token
-        self.ws.subscribe("nse_cm", ["26009"])
+        token = self.lookup.get_token("BHARTIARTL-EQ")
+
+        token_list = [
+            {
+                "exchangeType": 2,
+                "tokens": [str(token)]
+            }
+        ]
+
+        print("📡 SUBSCRIBING...")
+
+        self.ws.subscribe(
+            "bharti_live",
+            2,
+            token_list
+        )
+
+        print("📡 SUBSCRIBED")
+
 
     # ==========================
     # RECEIVE TICK
     # ==========================
     def on_message(self, ws, message):
 
-        try:
-            data = json.loads(message) if isinstance(message, str) else message
+        print("🔥 RAW:", message)
 
-            ltp = None
+        ltp = message["last_traded_price"] / 100
 
-            if isinstance(data, dict):
-                ltp = data.get("ltp") or data.get("last_traded_price")
+        self.on_tick(ltp)
 
-                # SmartAPI sometimes nests data
-                if not ltp and "data" in data:
-                    ltp = data["data"].get("ltp") or data["data"].get("last_traded_price")
-
-            if ltp:
-                print("LIVE TICK:", ltp)
-                self.on_tick(float(ltp))
-
-        except Exception as e:
-            print("Tick Error:", e)
 
     def on_error(self, ws, error):
         print("WS ERROR:", error)

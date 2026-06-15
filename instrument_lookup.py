@@ -1,45 +1,23 @@
-import pandas as pd
-
+import requests
 
 class InstrumentLookup:
 
-    def __init__(self, filepath="instruments.csv"):
+    def __init__(self):
 
-        self.filepath = filepath
+        url = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
 
-        self.df = pd.read_csv(filepath)
+        print("📥 Loading instrument master...")
 
-        # normalize columns (Angel CSV usually has these)
-        self.df.columns = [col.strip().lower() for col in self.df.columns]
+        self.data = requests.get(url).json()
 
-        print("✅ Instrument file loaded")
+        print("✅ Instrument master loaded")
 
-    # ==========================
-    # GET TOKEN
-    # ==========================
-    def get_token(self, symbol, exchange="NSE"):
+    def get_token(self, symbol):
 
-        row = self.df[
-            (self.df["symbol"] == symbol) &
-            (self.df["exchange"] == exchange)
-        ]
+        for item in self.data:
 
-        if row.empty:
-            raise Exception(f"Token not found for {symbol}")
+            if item["symbol"] == symbol:
 
-        return str(row.iloc[0]["token"])
+                return item["token"]
 
-    # ==========================
-    # GET FULL INSTRUMENT INFO
-    # ==========================
-    def get_instrument(self, symbol, exchange="NSE"):
-
-        row = self.df[
-            (self.df["symbol"] == symbol) &
-            (self.df["exchange"] == exchange)
-        ]
-
-        if row.empty:
-            raise Exception(f"Instrument not found for {symbol}")
-
-        return row.iloc[0].to_dict()
+        raise Exception(f"Token not found for {symbol}")
