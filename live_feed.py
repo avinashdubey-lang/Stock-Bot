@@ -71,9 +71,15 @@ class LiveFeed:
 
         print("🔥 RAW:", message)
 
-        ltp = message["last_traded_price"] / 100
+        try:
+            ltp = message["last_traded_price"] / 100
 
-        self.on_tick(ltp)
+            print("📈 LTP:", ltp)
+
+            self.on_tick(ltp)
+
+        except Exception as e:
+            print("❌ TICK PROCESSING ERROR:", e)
 
 
     def on_error(self, ws, error):
