@@ -1,10 +1,12 @@
 from SmartApi.smartWebSocketV2 import SmartWebSocketV2
+from datetime import datetime
+from websocket_feed import CandleBuilder
 import json
 
 
 class LiveFeed:
 
-    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup):
+    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup, strategy):
 
         self.client_code = client_code
         self.api_key = api_key
@@ -12,6 +14,9 @@ class LiveFeed:
         self.feed_token = feed_token
         self.on_tick = on_tick
         self.lookup = lookup
+        self.strategy = strategy
+
+        self.candle_builder = CandleBuilder()
 
         self.ws = SmartWebSocketV2(
         auth_token=self.feed_token,
@@ -22,7 +27,7 @@ class LiveFeed:
 
         # bind callbacks
         self.ws.on_open = self.on_open
-        self.ws.on_data = self.on_message
+        self.ws.on_data = self.on_data
         self.ws.on_error = self.on_error
         self.ws.on_close = self.on_close
         print("WS OBJECT:", self.ws)
@@ -48,7 +53,7 @@ class LiveFeed:
 
         token_list = [
             {
-                "exchangeType": 2,
+                "exchangeType": 1,
                 "tokens": [str(token)]
             }
         ]
@@ -67,20 +72,29 @@ class LiveFeed:
     # ==========================
     # RECEIVE TICK
     # ==========================
-    def on_message(self, ws, message):
-
-        print("🔥 RAW:", message)
+    def on_data(self, wsapp, message):
 
         try:
-            ltp = message["last_traded_price"] / 100
+            ltp = message.get("last_traded_price", 0) / 100
+            ts = datetime.fromtimestamp(message["exchange_timestamp"] / 1000)
 
-            print("📈 LTP:", ltp)
+            print("\n🔥 RAW TICK RECEIVED")
+            print("LTP:", ltp)
+            print("TIME:", ts)
+            print("VOLUME:", message.get("volume_trade_for_the_day"))
 
+            # execution engine
             self.on_tick(ltp)
 
-        except Exception as e:
-            print("❌ TICK PROCESSING ERROR:", e)
+            # candle builder
+            candle = self.candle_builder.on_tick(ltp, ts)
 
+            if candle:
+                print("\n📊 CANDLE CLOSED:", candle)
+                self.strategy(candle)
+
+        except Exception as e:
+            print("❌ ERROR:", e)
 
     def on_error(self, ws, error):
         print("WS ERROR:", error)

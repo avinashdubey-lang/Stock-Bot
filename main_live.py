@@ -1,9 +1,12 @@
 from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
+import traceback
 
 from strategy import Strategy
 from execution_engine import ExecutionEngine
 from risk_manager import RiskManager
 from trade_logger import TradeLogger
+from market_data import get_opening_levels, get_token
+from login import login_user
 
 from paper_broker import PaperBroker
 from angel_broker import AngelBroker
@@ -23,7 +26,10 @@ def create_broker():
 
     print("🔥 LIVE MODE ACTIVE")
 
+    smartApi = login_user()[0]
+
     return AngelBroker(
+        smartApi=smartApi,
         api_key=API_KEY,
         client_code=CLIENT_CODE,
         password=PASSWORD,
@@ -36,12 +42,19 @@ def create_broker():
 # INIT SYSTEM COMPONENTS
 # ==========================
 broker = create_broker()
+smartApi = broker.smartApi
 logger = TradeLogger()
 risk = RiskManager()
 
 engine = ExecutionEngine(broker, logger, risk)
 strategy = Strategy()
 
+symboltoken = get_token(SYMBOL)
+
+high, low = get_opening_levels(broker.smartApi, SYMBOL)
+strategy.set_levels(high, low)
+
+print(f"📊 LEVELS SET: {high} / {low}")
 
 
 
@@ -76,7 +89,8 @@ def create_feed():
         auth_token=broker.jwt_token,
         feed_token=broker.feed_token,
         on_tick=on_tick,
-        lookup=InstrumentLookup()
+        lookup=InstrumentLookup(),
+        strategy=strategy
     )
 
 
@@ -86,7 +100,8 @@ feed = create_feed()
 # ==========================
 # START SYSTEM
 # ==========================
-if feed:
+try:
     feed.start()
-else:
-    print("🧪 Running in PAPER MODE (no live feed)")
+except Exception as e:
+    print("❌ FEED CRASH:")
+    traceback.print_exc()

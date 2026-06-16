@@ -6,12 +6,13 @@ import pyotp
 
 class AngelBroker:
 
-    def __init__(self, api_key, client_code, password, totp, quantity):
+    def __init__(self, smartApi, api_key, client_code, password, totp, quantity):
 
         self.api_key = api_key
         self.client_code = client_code
         self.password = password
         self.totp = totp
+        self.smartApi = smartApi
 
         self.quantity = quantity
         self.lookup = InstrumentLookup()
@@ -19,21 +20,12 @@ class AngelBroker:
         self.position = None
         self.trade_history = []
 
-        self.obj = SmartConnect(api_key=self.api_key)
+        self.obj = smartApi
 
-        self.session = self.obj.generateSession(
-            self.client_code,
-            self.password,
-            pyotp.TOTP(self.totp).now()
-        )
+        self.jwt_token = smartApi.access_token
+        self.feed_token = smartApi.getfeedToken()
 
-        if not self.session:
-            raise Exception("Login failed")
-
-        self.jwt_token = self.session["data"]["jwtToken"]
-        self.feed_token = self.session["data"]["feedToken"]
-
-        print("✅ Angel One Login Successful")
+        print("✅ Reusing existing Angel session")
         print("JWT READY")
         print("FEED READY")
 
@@ -60,9 +52,14 @@ class AngelBroker:
             print("❌ BROKER ERROR:", e)
             return None
 
-        if not response or response.get("status") == False:
+        if not response:
             print("❌ ORDER FAILED:", response)
             return None
+
+        if isinstance(response, dict):
+            if response.get("status") is False:
+                print("❌ ORDER FAILED:", response)
+                return None
 
         print("ORDER RESPONSE:", response)
         return response
@@ -79,14 +76,14 @@ class AngelBroker:
 
         response = self._place_order(symbol, transaction_type)
 
-        order_id = None
+        if not response:
+            return None
 
-        if response:
-            order_id = (
-                response.get("data", {}).get("orderid")
-                or response.get("orderid")
-                or response
-            )
+        order_id = (
+            response.get("data", {}).get("orderid")
+            or response.get("orderid")
+            or response
+        )
 
         self.position = {
             "symbol": symbol,
@@ -125,7 +122,11 @@ class AngelBroker:
             print("❌ CLOSE FAILED: invalid token")
             return None
 
-        self._place_order(symbol, transaction_type)
+        response = self._place_order(symbol, transaction_type)
+
+        if not response:
+            print("❌ EXIT ORDER FAILED")
+            return None
 
         # pnl calculation
         if direction == "BUY":
