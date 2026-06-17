@@ -1,5 +1,7 @@
 from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 import traceback
+from datetime import datetime
+import time
 
 from strategy import Strategy
 from execution_engine import ExecutionEngine
@@ -51,10 +53,21 @@ strategy = Strategy()
 
 symboltoken = get_token(SYMBOL)
 
-high, low = get_opening_levels(broker.smartApi, SYMBOL)
-strategy.set_levels(high, low)
+while True:
+    try:
+        high, low = get_opening_levels(broker.smartApi, SYMBOL)
 
-print(f"📊 LEVELS SET: {high} / {low}")
+        strategy.set_levels(high, low)
+
+        print(f"📊 LEVELS SET: {high} / {low}")
+
+        break
+
+    except Exception as e:
+        print("⏳ Waiting for opening levels...")
+        print(e)
+
+        time.sleep(60)
 
 
 
@@ -64,11 +77,6 @@ print(f"📊 LEVELS SET: {high} / {low}")
 def on_tick(price):
 
     print("\nTICK:", price)
-
-    signal = strategy.on_candle({"close": price})
-
-    if signal:
-        engine.on_signal(signal)
 
     engine.on_tick(price)
 

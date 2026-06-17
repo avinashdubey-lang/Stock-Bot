@@ -1,7 +1,7 @@
 #login.py
 from SmartApi import SmartConnect
 import pyotp
-
+import time
 def login_user():
 
     api_key = "K9Fhvfho"
@@ -14,11 +14,25 @@ def login_user():
 
     smartApi = SmartConnect(api_key=api_key)
 
-    session = smartApi.generateSession(
-        username,
-        password,
-        totp
-    )
+    for attempt in range(3):
+        try:
+            session = smartApi.generateSession(
+                username,
+                password,
+                totp
+            )
+            break
+
+        except Exception as e:
+
+            print(f"⚠️ Login attempt {attempt+1} failed:")
+            print(e)
+
+            if attempt == 2:
+                raise
+
+            print("⏳ Retrying in 5 seconds...")
+            time.sleep(5)
 
     if not session["status"]:
         raise Exception(session)

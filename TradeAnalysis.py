@@ -5,12 +5,12 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-SYMBOL = "BHARTIARTL.NS"
+SYMBOL = "BSE.NS"
 
 PERIOD = "60d"
 INTERVAL = "15m"
 
-TARGET_PERCENT = 0.525
+TARGET_PERCENT = 0.527
 SL_PERCENT = 0.4873
 
 INITIAL_CAPITAL = 10000

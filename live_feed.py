@@ -91,7 +91,10 @@ class LiveFeed:
 
             if candle:
                 print("\n📊 CANDLE CLOSED:", candle)
-                self.strategy(candle)
+                
+                signal = self.strategy.on_candle(candle)
+
+                print("SIGNAL:", signal)
 
         except Exception as e:
             print("❌ ERROR:", e)

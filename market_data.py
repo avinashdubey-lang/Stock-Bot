@@ -32,7 +32,7 @@ def load_master_data():
             return []
 
 
-master_data = load_master_data()
+master_data = None
 
 
 # ==========================
@@ -40,6 +40,12 @@ master_data = load_master_data()
 # ==========================
 
 def get_token(symbol):
+
+    global master_data
+
+    if master_data is None:
+        print("📥 Loading instrument master...")
+        master_data = load_master_data()
 
     if not master_data:
         raise Exception("Master data not loaded")
@@ -203,6 +209,11 @@ def get_opening_levels(smartApi, symbol):
 
     if df.empty:
         raise Exception("No candle data received")
+    
+    now = dt.datetime.now()
+
+    if now.time() < dt.time(10, 0):
+        raise Exception("Opening levels not ready before 10:00 AM")
 
     if len(df) < 3:
         raise Exception(
@@ -212,6 +223,11 @@ def get_opening_levels(smartApi, symbol):
     # Ignore first candle (9:15–9:30)
     candle2 = df.iloc[1]
     candle3 = df.iloc[2]
+
+    if candle3["time"].time() != dt.time(9, 45):
+        raise Exception(
+            f"Expected 9:45 candle, got {candle3['time']}"
+        )
 
     high_level = max(
         candle2["high"],
