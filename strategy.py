@@ -8,6 +8,7 @@ class Strategy:
 
         self.levels_set = False
         self.trade_taken = False
+        self.current_day = None
 
     # ==========================
     # RESET
@@ -49,6 +50,12 @@ class Strategy:
         if not self.levels_set:
             return None
 
+        candle_day = candle["time"].date()
+
+        if self.current_day != candle_day:
+            self.current_day = candle_day
+            self.trade_taken = False
+
         if self.trade_taken:
             return None
 
@@ -61,8 +68,8 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 0.995
-            target = entry * 1.005
+            sl = entry * 0.999
+            target = entry * 1.001
 
             print("📈 BUY BREAKOUT")
 
@@ -81,8 +88,8 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 1.005
-            target = entry * 0.995
+            sl = entry * 1.001
+            target = entry * 0.999
 
             print("📉 SELL BREAKOUT")
 

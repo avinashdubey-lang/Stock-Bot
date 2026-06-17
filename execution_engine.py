@@ -1,3 +1,4 @@
+#execution_engine
 from datetime import datetime, time
 
 
@@ -19,6 +20,8 @@ class ExecutionEngine:
     # ENTRY HANDLER
     # -----------------------
     def on_signal(self, signal):
+
+        print("ENGINE RECEIVED SIGNAL:", signal)
 
         # 🛡 RISK CHECK FIRST
         if not self.risk.can_take_trade():
@@ -73,17 +76,17 @@ class ExecutionEngine:
         # -----------------------
         # EOD EXIT (STRICT)
         # -----------------------
-        if now >= time(14, 59):
+        # if now >= time(14, 59):
 
-            trade = self.broker.close_all("EOD_EXIT", ltp)
+        #     trade = self.broker.close_all("EOD_EXIT", ltp)
 
-            if trade:
-                self.risk.update_pnl(trade["pnl"])
-                self.logger.log_trade(trade)
+        #     if trade:
+        #         self.risk.update_pnl(trade["pnl"])
+        #         self.logger.log_trade(trade)
 
-            self.trading_done = True
-            print("🔴 EOD EXIT")
-            return
+        #     self.trading_done = True
+        #     print("🔴 EOD EXIT")
+        #     return
 
         direction = pos["direction"]
         sl = pos["stoploss"]
