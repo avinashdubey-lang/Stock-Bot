@@ -6,7 +6,7 @@ import json
 
 class LiveFeed:
 
-    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup, strategy):
+    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup, strategy, engine):
 
         self.client_code = client_code
         self.api_key = api_key
@@ -15,6 +15,7 @@ class LiveFeed:
         self.on_tick = on_tick
         self.lookup = lookup
         self.strategy = strategy
+        self.engine = engine
 
         self.candle_builder = CandleBuilder()
 
@@ -95,6 +96,9 @@ class LiveFeed:
                 signal = self.strategy.on_candle(candle)
 
                 print("SIGNAL:", signal)
+
+                if signal:
+                    self.engine.on_signal(signal)
 
         except Exception as e:
             print("❌ ERROR:", e)

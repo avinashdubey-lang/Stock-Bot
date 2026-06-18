@@ -28,8 +28,8 @@ class ExecutionEngine:
             print("⛔ TRADE BLOCKED BY RISK MANAGER")
             return
 
-        if self.broker.position:
-            return  # only 1 trade at a time
+        if isinstance(self.broker.position, dict):
+            return
 
         trade = self.broker.open_trade(
             signal["symbol"],
@@ -66,27 +66,28 @@ class ExecutionEngine:
         if self.trading_done:
             return
 
-        if not self.broker.position:
-            return
-
         pos = self.broker.position
+        if not pos:
+            return
+        pos = pos.copy()
 
+        
         now = datetime.now().time()
 
         # -----------------------
         # EOD EXIT (STRICT)
         # -----------------------
-        # if now >= time(14, 59):
+        if now >= time(14, 59):
 
-        #     trade = self.broker.close_all("EOD_EXIT", ltp)
+            trade = self.broker.close_all("EOD_EXIT", ltp)
 
-        #     if trade:
-        #         self.risk.update_pnl(trade["pnl"])
-        #         self.logger.log_trade(trade)
+            if trade:
+               self.risk.update_pnl(trade["pnl"])
+               self.logger.log_trade(trade)
 
-        #     self.trading_done = True
-        #     print("🔴 EOD EXIT")
-        #     return
+            self.trading_done = True
+            print("🔴 EOD EXIT")
+            return
 
         direction = pos["direction"]
         sl = pos["stoploss"]
@@ -97,7 +98,7 @@ class ExecutionEngine:
         # -----------------------
         if direction == "BUY":
 
-            if ltp <= sl:
+            if float(ltp) <= float(sl):
 
                 trade = self.broker.close_all("SL_HIT", ltp)
 
@@ -110,7 +111,7 @@ class ExecutionEngine:
                 return
 
 
-            if ltp >= target:
+            if float(ltp) >= float(target):
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
 
@@ -126,7 +127,7 @@ class ExecutionEngine:
         # SELL LOGIC
         # -----------------------
         else:
-            if ltp >= sl:
+            if float(ltp) >= float(sl):
 
                 trade = self.broker.close_all("SL_HIT", ltp)
 
@@ -139,7 +140,7 @@ class ExecutionEngine:
                 return
 
 
-            if ltp <= target:
+            if float(ltp) <= float(target):
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
 

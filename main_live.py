@@ -98,7 +98,8 @@ def create_feed():
         feed_token=broker.feed_token,
         on_tick=on_tick,
         lookup=InstrumentLookup(),
-        strategy=strategy
+        strategy=strategy,
+        engine=engine
     )
 
 
