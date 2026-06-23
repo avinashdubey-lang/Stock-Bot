@@ -132,7 +132,7 @@ def get_candles(smartApi, symbol, interval="FIFTEEN_MINUTE"):
         print(e)
 
         print("⏳ Sleeping for 10 seconds...")
-        time.sleep(10)
+        time.sleep(60)
 
         return pd.DataFrame(
             columns=[

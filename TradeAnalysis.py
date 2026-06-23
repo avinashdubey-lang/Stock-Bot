@@ -5,7 +5,7 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-SYMBOL = "BSE.NS"
+SYMBOL = "BHARTIARTL.NS"
 
 PERIOD = "60d"
 INTERVAL = "15m"

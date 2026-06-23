@@ -79,11 +79,16 @@ class ExecutionEngine:
         # -----------------------
         if now >= time(14, 59):
 
+            print("🚨 EOD CONDITION TRIGGERED")
+            print("CURRENT TIME:", now)
+
             trade = self.broker.close_all("EOD_EXIT", ltp)
 
+            print("CLOSE_ALL RETURN:", trade)
+
             if trade:
-               self.risk.update_pnl(trade["pnl"])
-               self.logger.log_trade(trade)
+                self.risk.update_pnl(trade["pnl"])
+                self.logger.log_trade(trade)
 
             self.trading_done = True
             print("🔴 EOD EXIT")

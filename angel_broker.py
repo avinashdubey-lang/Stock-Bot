@@ -103,6 +103,11 @@ class AngelBroker:
     # ==========================
     def close_all(self, reason, exit_price):
 
+        print("🚨 CLOSE_ALL CALLED")
+        print("REASON:", reason)
+        print("EXIT PRICE:", exit_price)
+
+
         if not self.position:
             return None
 
