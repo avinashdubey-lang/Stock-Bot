@@ -1,9 +1,10 @@
 from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 import traceback
-import time
 import threading
-from datetime import datetime, time
-import time as t
+
+import time
+from datetime import datetime, time as dt_time
+
 
 from strategy import Strategy
 from execution_engine import ExecutionEngine
@@ -118,7 +119,7 @@ def eod_watchdog():
 
         now = datetime.now().time()
 
-        if now >= time(14, 59):
+        if now >= dt_time(14, 59):
 
             print("🔥 EOD WATCHDOG TRIGGERED")
 
@@ -136,7 +137,7 @@ def eod_watchdog():
 
             break
 
-        t.sleep(1)
+        time.sleep(1)
 
 
 # ==========================
