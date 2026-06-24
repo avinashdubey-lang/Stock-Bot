@@ -115,8 +115,14 @@ class ExecutionEngine:
             if float(ltp) <= float(sl):
 
                 print("🔥 ENTERED BUY SL BLOCK")
+                print(f"LTP={ltp} SL={sl}")
+
+                print("SL BLOCK START")
 
                 trade = self.broker.close_all("SL_HIT", ltp)
+
+                print("SL BLOCK END")
+                print("TRADE =", trade)
 
                 if trade:
                     self.risk.update_pnl(trade["pnl"])
@@ -132,8 +138,13 @@ class ExecutionEngine:
                 print("🎯 ENTERED BUY TARGET BLOCK")
                 print(f"LTP={ltp} TARGET={target}")
 
+                print("TARGET BLOCK START")
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
+
+                print("TARGET BLOCK END")
+                print("TRADE =", trade)
+
 
                 if trade:
                     self.risk.update_pnl(trade["pnl"])
@@ -150,8 +161,14 @@ class ExecutionEngine:
             if float(ltp) >= float(sl):
 
                 print("🔥 ENTERED SELL SL BLOCK")
+                print(f"LTP={ltp} SL={sl}")
+
+                print("SELL SL BLOCK START")
 
                 trade = self.broker.close_all("SL_HIT", ltp)
+
+                print("SELL SL BLOCK END")
+                print("TRADE =", trade)
 
                 if trade:
                     self.risk.update_pnl(trade["pnl"])
@@ -167,8 +184,12 @@ class ExecutionEngine:
                 print("🎯 ENTERED SELL TARGET BLOCK")
                 print(f"LTP={ltp} TARGET={target}")
 
+                print("SELL TARGET BLOCK START")
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
+
+                print("SELL TARGET BLOCK END")
+                print("TRADE =", trade)
 
                 if trade:
                     self.risk.update_pnl(trade["pnl"])

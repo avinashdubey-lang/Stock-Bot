@@ -76,7 +76,7 @@ class AngelBroker:
 
         response = self._place_order(symbol, transaction_type)
 
-        print("EXIT ORDER RESPONSE:", response)
+        print("ENTRY ORDER RESPONSE:", response)
 
         if not response:
             return None
@@ -129,7 +129,17 @@ class AngelBroker:
             print("❌ CLOSE FAILED: invalid token")
             return None
 
-        response = self._place_order(symbol, transaction_type)
+        print("➡️ ABOUT TO SEND EXIT ORDER")
+        print("SYMBOL:", symbol)
+        print("SIDE:", transaction_type)
+
+        try:
+            response = self._place_order(symbol, transaction_type)
+            print("⬅️ EXIT ORDER RETURNED:", response)
+
+        except Exception as e:
+            print("💥 EXIT ORDER EXCEPTION:", e)
+            raise
 
         if not response:
             print("❌ EXIT ORDER FAILED")
