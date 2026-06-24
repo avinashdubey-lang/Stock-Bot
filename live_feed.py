@@ -84,6 +84,8 @@ class LiveFeed:
             print("TIME:", ts)
             print("VOLUME:", message.get("volume_trade_for_the_day"))
 
+            print("➡️ LIVE FEED SENDING TO ENGINE:", ltp)
+
             # execution engine
             self.on_tick(ltp)
 

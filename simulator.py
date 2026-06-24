@@ -1,37 +1,27 @@
-import time
-from strategy import Strategy
 from execution_engine import ExecutionEngine
 from paper_broker import PaperBroker
+from risk_manager import RiskManager
 from trade_logger import TradeLogger
 
-# 1. create dependencies
+
 broker = PaperBroker()
 logger = TradeLogger()
+risk = RiskManager()
 
-# 2. create execution engine
-execution_engine = ExecutionEngine(broker, logger)
+engine = ExecutionEngine(broker, logger, risk)
 
+signal = {
+    "symbol": "TEST",
+    "action": "BUY",
+    "entry": 100,
+    "target": 110,
+    "sl": 95
+}
 
-# fake price movement
-prices = [
-    1800, 1801, 1802, 1803, 1804,  # breakout
-    1803, 1802, 1801, 1790,        # SL hit zone
-]
+engine.on_signal(signal)
 
-for p in prices:
-    print("TICK:", p)
+ticks = [101, 102, 105, 109, 110, 111]
 
-    candle = {"close": p}  # simple fake candle for testing
-
-    # 1. generate signal
-    strategy = Strategy()
-    signal = strategy.on_candle(candle)
-
-    # 2. execute entry
-    if signal:
-        execution_engine.on_signal(signal)
-
-    # 3. manage open position
-    execution_engine.on_tick(p)
-
-    time.sleep(0.5)
+for t in ticks:
+    print("\nTICK:", t)
+    engine.on_tick(t)

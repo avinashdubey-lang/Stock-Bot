@@ -63,6 +63,8 @@ class ExecutionEngine:
     # -----------------------
     def on_tick(self, ltp):
 
+        print("🧠 ENGINE RECEIVED LIVE TICK:", ltp)
+
         print("ENGINE ON_TICK CALLED:", ltp)
         print("TRADING_DONE =", self.trading_done)
         print("BROKER POSITION =", self.broker.position)
