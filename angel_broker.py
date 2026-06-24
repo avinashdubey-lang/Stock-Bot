@@ -76,6 +76,8 @@ class AngelBroker:
 
         response = self._place_order(symbol, transaction_type)
 
+        print("EXIT ORDER RESPONSE:", response)
+
         if not response:
             return None
 

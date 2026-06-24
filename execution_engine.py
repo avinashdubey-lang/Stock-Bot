@@ -81,6 +81,8 @@ class ExecutionEngine:
 
             print("🚨 EOD CONDITION TRIGGERED")
             print("CURRENT TIME:", now)
+            print("CURRENT POSITION:", self.broker.position)
+            print("CURRENT LTP:", ltp)
 
             trade = self.broker.close_all("EOD_EXIT", ltp)
 
@@ -98,12 +100,21 @@ class ExecutionEngine:
         sl = pos["stoploss"]
         target = pos["target"]
 
+        print(
+            f"DEBUG | POS={direction} "
+            f"LTP={ltp} "
+            f"SL={sl} "
+            f"TARGET={target}"
+        )
+
         # -----------------------
         # BUY LOGIC
         # -----------------------
         if direction == "BUY":
 
             if float(ltp) <= float(sl):
+
+                print("🔥 ENTERED BUY SL BLOCK")
 
                 trade = self.broker.close_all("SL_HIT", ltp)
 
@@ -117,6 +128,10 @@ class ExecutionEngine:
 
 
             if float(ltp) >= float(target):
+
+                print("🎯 ENTERED BUY TARGET BLOCK")
+                print(f"LTP={ltp} TARGET={target}")
+
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
 
@@ -134,6 +149,8 @@ class ExecutionEngine:
         else:
             if float(ltp) >= float(sl):
 
+                print("🔥 ENTERED SELL SL BLOCK")
+
                 trade = self.broker.close_all("SL_HIT", ltp)
 
                 if trade:
@@ -146,6 +163,10 @@ class ExecutionEngine:
 
 
             if float(ltp) <= float(target):
+
+                print("🎯 ENTERED SELL TARGET BLOCK")
+                print(f"LTP={ltp} TARGET={target}")
+
 
                 trade = self.broker.close_all("TARGET_HIT", ltp)
 
