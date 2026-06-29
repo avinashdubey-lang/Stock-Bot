@@ -68,8 +68,8 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 0.999
-            target = entry * 1.001
+            sl = entry * 0.995
+            target = entry * 1.005
 
             print("📈 BUY BREAKOUT")
 
@@ -88,8 +88,8 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 1.001
-            target = entry * 0.999
+            sl = entry * 1.005
+            target = entry * 0.995
 
             print("📉 SELL BREAKOUT")
 
