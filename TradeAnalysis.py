@@ -300,9 +300,33 @@ for current_day in days:
                     reason = "TARGET"
 
 
-            # =========================================
+            # =============================================
+            # EOD EXIT
+            # =============================================
+
+            if exit_price is None and i == len(day) - 1:
+
+                exit_price = float(candle["Close"])
+
+                if direction == "LONG":
+
+                    pnl = (
+                        (exit_price - entry)
+                        * quantity
+                    )
+
+                else:
+
+                    pnl = (
+                        (entry - exit_price)
+                        * quantity
+                    )
+
+                reason = "EOD"
+
+            # =============================================
             # SAVE TRADE
-            # =========================================
+            # =============================================
 
             if exit_price is not None:
 
