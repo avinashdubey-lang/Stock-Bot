@@ -4,14 +4,42 @@ MODE = "LIVE"       # "PAPER" or "LIVE"
 
 SYMBOL = "BHARTIARTL-EQ"
 
-QUANTITY = 1
-
 EXCHANGE = "NSE"
 
 PRODUCT_TYPE = "INTRADAY"
 
-# Angel One (used only in LIVE mode)
-API_KEY = "K9Fhvfho"
-CLIENT_CODE = "AAAN998226"
-PASSWORD = "3027"
-TOTP_SECRET = "UA3PJRBKTOTUQSVH67Y4F5ZEZM"
+# ==========================================
+# MULTIPLE ACCOUNTS
+# ==========================================
+
+ACCOUNTS = [
+
+    {
+        "name": "Avinash's Account",
+
+        "api_key": "K9Fhvfho",
+
+        "client_code": "AAAN998226",
+
+        "password": "3027",
+
+        "totp_secret": "UA3PJRBKTOTUQSVH67Y4F5ZEZM",
+
+        "quantity": 1
+    },
+
+    {
+        "name": "Anubhav's Account",
+
+        "api_key": "",
+
+        "client_code": "",
+
+        "password": "",
+
+        "totp_secret": "",
+
+        "quantity": 1
+    }
+
+]
