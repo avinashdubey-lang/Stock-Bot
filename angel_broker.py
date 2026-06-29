@@ -81,11 +81,13 @@ class AngelBroker:
         if not response:
             return None
 
-        order_id = (
-            response.get("data", {}).get("orderid")
-            or response.get("orderid")
-            or response
-        )
+        if isinstance(response, dict):
+            order_id = (
+                response.get("data", {}).get("orderid")
+                or response.get("orderid")
+            )
+        else:
+            order_id = response
 
         self.position = {
             "symbol": symbol,
@@ -95,6 +97,8 @@ class AngelBroker:
             "stoploss": stoploss,
             "order_id": order_id
         }
+
+        print("✅ POSITION STORED:", self.position)
 
         print(f"🟢 LIVE ORDER PLACED: {direction} {symbol} @ {entry}")
 
