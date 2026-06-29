@@ -39,7 +39,7 @@ def create_brokers():
 
         smartApi, feed_token, client_code, api_key, jwt_token = login_user(account)
 
-        brokers = AngelBroker(
+        broker = AngelBroker(
             smartApi=smartApi,
             api_key=account["api_key"],
             client_code=account["client_code"],
@@ -56,19 +56,20 @@ def create_brokers():
 # ==========================
 # INIT SYSTEM COMPONENTS
 # ==========================
-broker = create_broker()
-smartApi = broker.smartApi
+brokers = create_brokers()
+primary_broker = brokers[0]
+smartApi = primary_broker.smartApi
 logger = TradeLogger()
 risk = RiskManager()
 
-engine = ExecutionEngine(broker, logger, risk)
+engine = ExecutionEngine(primary_broker, logger, risk)
 strategy = Strategy()
 
 symboltoken = get_token(SYMBOL)
 
 while True:
     try:
-        high, low = get_opening_levels(broker.smartApi, SYMBOL)
+        high, low = get_opening_levels(primary_broker.smartApi, SYMBOL)
 
         strategy.set_levels(high, low)
 
@@ -109,10 +110,10 @@ def create_feed():
 
     # IMPORTANT: reuse same session from broker
     return LiveFeed(
-        client_code=CLIENT_CODE,
-        api_key=API_KEY,
-        auth_token=broker.jwt_token,
-        feed_token=broker.feed_token,
+        client_code=primary_broker.client_code,
+        api_key=primary_broker.api_key,
+        auth_token=primary_broker.jwt_token,
+        feed_token=primary_broker.feed_token,
         on_tick=on_tick,
         lookup=InstrumentLookup(),
         strategy=strategy,
@@ -133,10 +134,10 @@ def eod_watchdog():
 
             print("🔥 EOD WATCHDOG TRIGGERED")
 
-            if broker.position and last_price is not None:
+            if primary_broker.position and last_price is not None:
                 print("🚨 FORCE EOD EXIT")
 
-                trade = broker.close_all("EOD_EXIT", last_price)
+                trade = primary_broker.close_all("EOD_EXIT", last_price)
 
                 if trade:
                     logger.log_trade(trade)
