@@ -1,4 +1,4 @@
-from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
+from config import MODE, SYMBOL, ACCOUNTS
 import traceback
 import threading
 
@@ -23,24 +23,34 @@ from instrument_lookup import InstrumentLookup
 # ==========================
 # BROKER CREATION
 # ==========================
-def create_broker():
+def create_brokers():
 
     if MODE == "PAPER":
         print("🧪 PAPER MODE ACTIVE")
-        return PaperBroker()
+        return [PaperBroker()]
 
     print("🔥 LIVE MODE ACTIVE")
 
-    smartApi = login_user()[0]
+    brokers = []
 
-    return AngelBroker(
-        smartApi=smartApi,
-        api_key=API_KEY,
-        client_code=CLIENT_CODE,
-        password=PASSWORD,
-        totp=TOTP_SECRET,
-        quantity=QUANTITY
-    )
+    for account in ACCOUNTS:
+
+        print(f"\n🔑 Logging into {account['name']}")
+
+        smartApi, feed_token, client_code, api_key, jwt_token = login_user(account)
+
+        brokers = AngelBroker(
+            smartApi=smartApi,
+            api_key=account["api_key"],
+            client_code=account["client_code"],
+            password=account["password"],
+            totp=account["totp_secret"],
+            quantity=account["quantity"]
+        )
+
+        brokers.append(broker)
+
+    return brokers
 
 
 # ==========================
