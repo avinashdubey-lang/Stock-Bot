@@ -1,4 +1,4 @@
-from config import MODE, SYMBOL, ACCOUNTS
+from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 import traceback
 import threading
 
@@ -23,64 +23,48 @@ from instrument_lookup import InstrumentLookup
 # ==========================
 # BROKER CREATION
 # ==========================
-def create_brokers():
+def create_broker():
 
     if MODE == "PAPER":
         print("🧪 PAPER MODE ACTIVE")
-        return [PaperBroker()]
+        return PaperBroker()
 
     print("🔥 LIVE MODE ACTIVE")
 
-    brokers = []
+    smartApi = login_user()[0]
 
-    for account in ACCOUNTS:
-
-        print(f"\n🔑 Logging into {account['name']}")
-
-        smartApi, feed_token, client_code, api_key, jwt_token = login_user(account)
-
-        broker = AngelBroker(
-            smartApi=smartApi,
-            api_key=account["api_key"],
-            client_code=account["client_code"],
-            password=account["password"],
-            totp=account["totp_secret"],
-            quantity=account["quantity"],
-            account_name=account["name"]
-        )
-
-        brokers.append(broker)
-
-    return brokers
+    return AngelBroker(
+        smartApi=smartApi,
+        api_key=API_KEY,
+        client_code=CLIENT_CODE,
+        password=PASSWORD,
+        totp=TOTP_SECRET,
+        quantity=QUANTITY
+    )
 
 
 # ==========================
 # INIT SYSTEM COMPONENTS
 # ==========================
-brokers = create_brokers()
-primary_broker = brokers[0]
-smartApi = primary_broker.smartApi
+broker = create_broker()
+smartApi = broker.smartApi
 
-engines = []
+logger = TradeLogger()
+risk = RiskManager()
 
-for broker in brokers:
-    logger = TradeLogger()
-    risk = RiskManager()
+engine = ExecutionEngine(
+    broker,
+    logger,
+    risk
+)
 
-    engines.append(
-        ExecutionEngine(
-            broker,
-            logger,
-            risk
-        )
-    )
 strategy = Strategy()
 
 symboltoken = get_token(SYMBOL)
 
 while True:
     try:
-        high, low = get_opening_levels(primary_broker.smartApi, SYMBOL)
+        high, low = get_opening_levels(broker.smartApi, SYMBOL)
 
         strategy.set_levels(high, low)
 
@@ -107,8 +91,7 @@ def on_tick(price):
 
     print("\nTICK:", price)
 
-    for engine in engines:
-        engine.on_tick(price)
+    engine.on_tick(price)
 
 
 # ==========================
@@ -122,14 +105,14 @@ def create_feed():
 
     # IMPORTANT: reuse same session from broker
     return LiveFeed(
-        client_code=primary_broker.client_code,
-        api_key=primary_broker.api_key,
-        auth_token=primary_broker.jwt_token,
-        feed_token=primary_broker.feed_token,
+        client_code=CLIENT_CODE,
+        api_key=API_KEY,
+        auth_token=broker.jwt_token,
+        feed_token=broker.feed_token,
         on_tick=on_tick,
         lookup=InstrumentLookup(),
         strategy=strategy,
-        engines=engines
+        engine=engine
     )
 
 
@@ -146,18 +129,16 @@ def eod_watchdog():
 
             print("🔥 EOD WATCHDOG TRIGGERED")
 
-            for broker, engine in zip(brokers, engines):
+            if broker.position and last_price is not None:
+                print("🚨 FORCE EOD EXIT")
 
-                if broker.position and last_price is not None:
-                    print("🚨 FORCE EOD EXIT")
+                trade = broker.close_all("EOD_EXIT", last_price)
 
-                    trade = broker.close_all("EOD_EXIT", last_price)
+                if trade:
+                    logger.log_trade(trade)
+                    risk.update_pnl(trade["pnl"])
 
-                    if trade:
-                        engine.logger.log_trade(trade)
-                        engine.risk.update_pnl(trade["pnl"])
-
-                    engine.trading_done = True
+                engine.trading_done = True
 
             break
 
