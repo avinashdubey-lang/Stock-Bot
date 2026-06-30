@@ -6,7 +6,7 @@ import json
 
 class LiveFeed:
 
-    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup, strategy, engine):
+    def __init__(self, client_code, api_key, auth_token, feed_token, on_tick, lookup, strategy, engines):
 
         self.client_code = client_code
         self.api_key = api_key
@@ -15,7 +15,7 @@ class LiveFeed:
         self.on_tick = on_tick
         self.lookup = lookup
         self.strategy = strategy
-        self.engine = engine
+        self.engines = engines
 
         self.candle_builder = CandleBuilder()
 
@@ -84,7 +84,7 @@ class LiveFeed:
             print("TIME:", ts)
             print("VOLUME:", message.get("volume_trade_for_the_day"))
 
-            print("➡️ LIVE FEED SENDING TO ENGINE:", ltp)
+            print("➡️ BROADCASTING TICK TO ALL ENGINES:", ltp)
 
             # execution engine
             self.on_tick(ltp)
@@ -100,7 +100,11 @@ class LiveFeed:
                 print("SIGNAL:", signal)
 
                 if signal:
-                    self.engine.on_signal(signal)
+                    for engine in self.engines:
+                        try:
+                            engine.on_signal(signal)
+                        except Exception as e:
+                            print(f"❌ Engine error: {e}")
 
         except Exception as e:
             print("❌ ERROR:", e)

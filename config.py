@@ -31,13 +31,13 @@ ACCOUNTS = [
     {
         "name": "Anubhav's Account",
 
-        "api_key": "",
+        "api_key": "YAeArCPY",
 
-        "client_code": "",
+        "client_code": "A430677",
 
-        "password": "",
+        "password": "1998",
 
-        "totp_secret": "",
+        "totp_secret": "F2BY6VXOWOXSOMSW4P4SZUKVPA",
 
         "quantity": 1
     }

@@ -45,7 +45,8 @@ def create_brokers():
             client_code=account["client_code"],
             password=account["password"],
             totp=account["totp_secret"],
-            quantity=account["quantity"]
+            quantity=account["quantity"],
+            account_name=account["name"]
         )
 
         brokers.append(broker)
@@ -59,10 +60,20 @@ def create_brokers():
 brokers = create_brokers()
 primary_broker = brokers[0]
 smartApi = primary_broker.smartApi
-logger = TradeLogger()
-risk = RiskManager()
 
-engine = ExecutionEngine(primary_broker, logger, risk)
+engines = []
+
+for broker in brokers:
+    logger = TradeLogger()
+    risk = RiskManager()
+
+    engines.append(
+        ExecutionEngine(
+            broker,
+            logger,
+            risk
+        )
+    )
 strategy = Strategy()
 
 symboltoken = get_token(SYMBOL)
@@ -96,7 +107,8 @@ def on_tick(price):
 
     print("\nTICK:", price)
 
-    engine.on_tick(price)
+    for engine in engines:
+        engine.on_tick(price)
 
 
 # ==========================
@@ -117,7 +129,7 @@ def create_feed():
         on_tick=on_tick,
         lookup=InstrumentLookup(),
         strategy=strategy,
-        engine=engine
+        engines=engines
     )
 
 
@@ -134,17 +146,18 @@ def eod_watchdog():
 
             print("🔥 EOD WATCHDOG TRIGGERED")
 
-            if primary_broker.position and last_price is not None:
-                print("🚨 FORCE EOD EXIT")
+            for broker, engine in zip(brokers, engines):
 
-                trade = primary_broker.close_all("EOD_EXIT", last_price)
+                if broker.position and last_price is not None:
+                    print("🚨 FORCE EOD EXIT")
 
-                if trade:
-                    logger.log_trade(trade)
-                    risk.update_pnl(trade["pnl"])
+                    trade = broker.close_all("EOD_EXIT", last_price)
 
-                engine.trading_done = True
-                break
+                    if trade:
+                        engine.logger.log_trade(trade)
+                        engine.risk.update_pnl(trade["pnl"])
+
+                    engine.trading_done = True
 
             break
 

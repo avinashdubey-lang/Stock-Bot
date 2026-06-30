@@ -6,13 +6,14 @@ import pyotp
 
 class AngelBroker:
 
-    def __init__(self, smartApi, api_key, client_code, password, totp, quantity):
+    def __init__(self, smartApi, api_key, client_code, password, totp, quantity, account_name):
 
         self.api_key = api_key
         self.client_code = client_code
         self.password = password
         self.totp = totp
         self.smartApi = smartApi
+        self.account_name = account_name
 
         self.quantity = quantity
         self.lookup = InstrumentLookup()
@@ -100,7 +101,7 @@ class AngelBroker:
 
         print("✅ POSITION STORED:", self.position)
 
-        print(f"🟢 LIVE ORDER PLACED: {direction} {symbol} @ {entry}")
+        print(f"[{self.account_name}] 🟢 LIVE ORDER PLACED: {direction} {symbol} @ {entry}")
 
         return self.position
 
@@ -164,7 +165,7 @@ class AngelBroker:
 
         self.trade_history.append(trade)
 
-        print(f"🔴 LIVE EXIT: {reason} @ {exit_price}")
+        print(f"[{self.account_name}] 🔴 LIVE EXIT: {reason} @ {exit_price}")
 
         self.position = None
 
