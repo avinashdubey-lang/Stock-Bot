@@ -1,7 +1,7 @@
 from SmartApi.smartWebSocketV2 import SmartWebSocketV2
 from datetime import datetime
 from websocket_feed import CandleBuilder
-import json
+from config import SYMBOL
 
 
 class LiveFeed:
@@ -50,7 +50,7 @@ class LiveFeed:
 
         print("✅ LIVE FEED CONNECTED")
 
-        token = self.lookup.get_token("BHARTIARTL-EQ")
+        token = self.lookup.get_token(SYMBOL)
 
         token_list = [
             {
@@ -62,7 +62,7 @@ class LiveFeed:
         print("📡 SUBSCRIBING...")
 
         self.ws.subscribe(
-            "bharti_live",
+            "live_feed",
             2,
             token_list
         )
@@ -99,7 +99,17 @@ class LiveFeed:
                 print("SIGNAL:", signal)
 
                 if signal:
-                    self.engine.on_signal(signal)
+
+                    if signal["type"] == "ENTRY":
+
+                        self.engine.on_signal(signal)
+
+                    elif signal["type"] == "EXIT":
+
+                        self.engine.on_exit_signal(
+                            signal["reason"],
+                            signal["price"]
+                        )
 
         except Exception as e:
             print("❌ ERROR:", e)

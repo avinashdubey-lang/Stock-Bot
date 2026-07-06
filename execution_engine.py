@@ -4,10 +4,11 @@ from datetime import datetime, time
 
 class ExecutionEngine:
 
-    def __init__(self, broker, logger, risk_manager):
+    def __init__(self, broker, logger, risk_manager, strategy):
         self.broker = broker
         self.logger = logger
         self.risk = risk_manager
+        self.strategy = strategy
         self.trading_done = False
 
     # -----------------------
@@ -59,6 +60,25 @@ class ExecutionEngine:
         })
 
     # -----------------------
+    # EXIT HANDLER (CANDLE CLOSE)
+    # -----------------------
+    def on_exit_signal(self, reason, exit_price):
+
+        if not self.broker.position:
+            return
+
+        trade = self.broker.close_all(reason, exit_price)
+
+        if trade:
+            self.risk.update_pnl(trade["pnl"])
+            self.logger.log_trade(trade)
+            self.strategy.clear_position()
+
+        self.trading_done = True
+
+        print(f"🔴 TRADE CLOSED : {reason}")
+
+    # -----------------------
     # EXIT HANDLER
     # -----------------------
     def on_tick(self, ltp):
@@ -72,10 +92,8 @@ class ExecutionEngine:
         if self.trading_done:
             return
 
-        pos = self.broker.position
-        if not pos:
+        if not self.broker.position:
             return
-        pos = pos.copy()
 
         
         now = datetime.now().time()
@@ -97,112 +115,10 @@ class ExecutionEngine:
             if trade:
                 self.risk.update_pnl(trade["pnl"])
                 self.logger.log_trade(trade)
+                self.strategy.clear_position()
 
             self.trading_done = True
             print("🔴 EOD EXIT")
             return
 
-        direction = pos["direction"]
-        sl = pos["stoploss"]
-        target = pos["target"]
-
-        print(
-            f"DEBUG | POS={direction} "
-            f"LTP={ltp} "
-            f"SL={sl} "
-            f"TARGET={target}"
-        )
-
-        # -----------------------
-        # BUY LOGIC
-        # -----------------------
-        if direction == "BUY":
-
-            if float(ltp) <= float(sl):
-
-                print("🔥 ENTERED BUY SL BLOCK")
-                print(f"LTP={ltp} SL={sl}")
-
-                print("SL BLOCK START")
-
-                trade = self.broker.close_all("SL_HIT", ltp)
-
-                print("SL BLOCK END")
-                print("TRADE =", trade)
-
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-
-                self.trading_done = True
-                print("❌ SL HIT (BUY)")
-                return
-
-
-            if float(ltp) >= float(target):
-
-                print("🎯 ENTERED BUY TARGET BLOCK")
-                print(f"LTP={ltp} TARGET={target}")
-
-                print("TARGET BLOCK START")
-
-                trade = self.broker.close_all("TARGET_HIT", ltp)
-
-                print("TARGET BLOCK END")
-                print("TRADE =", trade)
-
-
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-
-                self.trading_done = True
-                print("🎯 TARGET HIT (BUY)")
-                return
-
-        # -----------------------
-        # SELL LOGIC
-        # -----------------------
-        else:
-            if float(ltp) >= float(sl):
-
-                print("🔥 ENTERED SELL SL BLOCK")
-                print(f"LTP={ltp} SL={sl}")
-
-                print("SELL SL BLOCK START")
-
-                trade = self.broker.close_all("SL_HIT", ltp)
-
-                print("SELL SL BLOCK END")
-                print("TRADE =", trade)
-
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-
-                self.trading_done = True
-                print("❌ SL HIT (SELL)")
-                return
-
-
-            if float(ltp) <= float(target):
-
-                print("🎯 ENTERED SELL TARGET BLOCK")
-                print(f"LTP={ltp} TARGET={target}")
-
-                print("SELL TARGET BLOCK START")
-
-                trade = self.broker.close_all("TARGET_HIT", ltp)
-
-                print("SELL TARGET BLOCK END")
-                print("TRADE =", trade)
-
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-
-                self.trading_done = True
-                print("🎯 TARGET HIT (SELL)")
-                return  
-            
-        return None
+        return 

@@ -9,6 +9,7 @@ class Strategy:
         self.levels_set = False
         self.trade_taken = False
         self.current_day = None
+        self.position = None
 
     # ==========================
     # RESET
@@ -21,6 +22,14 @@ class Strategy:
 
         self.levels_set = False
         self.trade_taken = False
+        self.position = None
+
+
+    # ==========================
+    # CLEAR POSITION
+    # ==========================
+    def clear_position(self):
+        self.position = None
 
     # ==========================
     # SET LEVELS (FROM REST API)
@@ -56,10 +65,57 @@ class Strategy:
             self.current_day = candle_day
             self.trade_taken = False
 
-        if self.trade_taken:
-            return None
 
         close = candle["close"]
+
+        # ==========================
+        # EXIT LOGIC
+        # ==========================
+
+        if self.position:
+
+            # BUY EXIT
+            if self.position["direction"] == "BUY":
+
+                if close >= self.position["target"]:
+
+                    return {
+                        "type": "EXIT",
+                        "reason": "TARGET_HIT",
+                        "price": close
+                    }
+
+                if close <= self.position["sl"]:
+
+                    return {
+                        "type": "EXIT",
+                        "reason": "SL_HIT",
+                        "price": close
+                    }
+
+            # SELL EXIT
+            else:
+
+                if close <= self.position["target"]:
+
+                    return {
+                        "type": "EXIT",
+                        "reason": "TARGET_HIT",
+                        "price": close
+                    }
+
+                if close >= self.position["sl"]:
+
+                    return {
+                        "type": "EXIT",
+                        "reason": "SL_HIT",
+                        "price": close
+                    }
+
+            return None
+        
+        if self.trade_taken:
+            return None
 
         # BUY BREAKOUT
         if close > self.high_level:
@@ -73,7 +129,15 @@ class Strategy:
 
             print("📈 BUY BREAKOUT")
 
+            self.position = {
+                "direction": "BUY",
+                "entry": entry,
+                "sl": sl,
+                "target": target
+            }
+
             return {
+                "type": "ENTRY",
                 "action": "BUY",
                 "symbol": SYMBOL,
                 "entry": entry,
@@ -93,7 +157,15 @@ class Strategy:
 
             print("📉 SELL BREAKOUT")
 
+            self.position = {
+                "direction": "SELL",
+                "entry": entry,
+                "sl": sl,
+                "target": target
+            }
+
             return {
+                "type": "ENTRY",
                 "action": "SELL",
                 "symbol": SYMBOL,
                 "entry": entry,

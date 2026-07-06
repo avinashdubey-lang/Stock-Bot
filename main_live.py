@@ -52,19 +52,23 @@ smartApi = broker.smartApi
 logger = TradeLogger()
 risk = RiskManager()
 
+strategy = Strategy()
+
 engine = ExecutionEngine(
     broker,
     logger,
-    risk
+    risk,
+    strategy
 )
-
-strategy = Strategy()
 
 symboltoken = get_token(SYMBOL)
 
 while True:
     try:
         high, low = get_opening_levels(broker.smartApi, SYMBOL)
+
+        strategy.reset()
+        engine.reset()
 
         strategy.set_levels(high, low)
 
@@ -137,6 +141,7 @@ def eod_watchdog():
                 if trade:
                     logger.log_trade(trade)
                     risk.update_pnl(trade["pnl"])
+                    strategy.clear_position()
 
                 engine.trading_done = True
 
