@@ -66,6 +66,7 @@ class ExecutionEngine:
 
         if not self.broker.position:
             return
+        
 
         trade = self.broker.close_all(reason, exit_price)
 
@@ -94,6 +95,11 @@ class ExecutionEngine:
 
         if not self.broker.position:
             return
+        
+        pos = self.broker.position.copy()
+
+        direction = pos["direction"]
+        sl = pos["stoploss"]
 
         
         now = datetime.now().time()
@@ -120,5 +126,42 @@ class ExecutionEngine:
             self.trading_done = True
             print("🔴 EOD EXIT")
             return
+        
+
+        # -----------------------
+        # STRICT STOP LOSS
+        # -----------------------
+
+        if direction == "BUY":
+
+            if float(ltp) <= float(sl):
+
+                print("❌ BUY STOP LOSS HIT")
+
+                trade = self.broker.close_all("SL_HIT", ltp)
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
+                    self.strategy.clear_position()
+
+                self.trading_done = True
+                return
+
+        else:
+
+            if float(ltp) >= float(sl):
+
+                print("❌ SELL STOP LOSS HIT")
+
+                trade = self.broker.close_all("SL_HIT", ltp)
+
+                if trade:
+                    self.risk.update_pnl(trade["pnl"])
+                    self.logger.log_trade(trade)
+                    self.strategy.clear_position()
+
+                self.trading_done = True
+                return
 
         return 
