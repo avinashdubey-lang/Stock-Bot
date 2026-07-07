@@ -65,14 +65,15 @@ symboltoken = get_token(SYMBOL)
 
 while True:
     try:
-        high, low = get_opening_levels(broker.smartApi, SYMBOL)
+        high, low, same_colour = get_opening_levels(broker.smartApi, SYMBOL)
 
         strategy.reset()
         engine.reset()
 
-        strategy.set_levels(high, low)
+        strategy.set_levels(high, low, same_colour)
 
         print(f"📊 LEVELS SET: {high} / {low}")
+        print(f"🎨 SAME COLOR : {same_colour}")
 
         break
 

@@ -239,8 +239,27 @@ def get_opening_levels(smartApi, symbol):
         candle3["low"]
     )
 
+    # ==========================
+    # SAME COLOR FILTER
+    # ==========================
+
+    same_colour = (
+        (
+            candle2["close"] > candle2["open"]
+            and
+            candle3["close"] > candle3["open"]
+        )
+        or
+        (
+            candle2["close"] < candle2["open"]
+            and
+            candle3["close"] < candle3["open"]
+        )
+    )
+
     print("\n📊 OPENING LEVELS")
     print(f"HIGH LEVEL: {high_level}")
     print(f"LOW LEVEL : {low_level}")
+    print(f"SAME COLOR : {same_colour}")
 
-    return high_level, low_level
+    return high_level, low_level, same_colour

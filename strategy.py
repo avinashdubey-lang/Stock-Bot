@@ -10,6 +10,7 @@ class Strategy:
         self.trade_taken = False
         self.current_day = None
         self.position = None
+        self.same_colour = False
 
     # ==========================
     # RESET
@@ -23,6 +24,7 @@ class Strategy:
         self.levels_set = False
         self.trade_taken = False
         self.position = None
+        self.same_colour = False
 
 
     # ==========================
@@ -38,17 +40,20 @@ class Strategy:
     def set_levels(
         self,
         high_level,
-        low_level
+        low_level,
+        same_colour
     ):
 
         self.high_level = high_level
         self.low_level = low_level
+        self.same_colour = same_colour
 
         self.levels_set = True
 
         print("\n📊 LEVELS SET")
         print("HIGH :", self.high_level)
         print("LOW  :", self.low_level)
+        print("SAME COLOR :", self.same_colour)
 
     # ==========================
     # SIGNAL GENERATION
@@ -112,6 +117,9 @@ class Strategy:
                         "price": close
                     }
 
+            return None
+        
+        if not self.same_colour:
             return None
         
         if self.trade_taken:
