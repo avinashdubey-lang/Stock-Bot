@@ -118,9 +118,7 @@ class Strategy:
                     }
 
             return None
-        
-        if not self.same_colour:
-            return None
+    
         
         if self.trade_taken:
             return None
@@ -132,13 +130,29 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 0.995
-            target = entry * 1.005
+            if self.same_colour:
 
-            print("📈 BUY BREAKOUT")
+                action = "BUY"
+                direction = "BUY"
+
+                sl = entry * 0.996
+                target = entry * 1.007
+
+                print("📈 BUY BREAKOUT")
+
+            else:
+
+                action = "SELL"
+                direction = "SELL"
+
+                sl = entry * 1.004
+                target = entry * 0.993
+
+                print("📉 REVERSE SELL BREAKOUT")
+
 
             self.position = {
-                "direction": "BUY",
+                "direction": direction,
                 "entry": entry,
                 "sl": sl,
                 "target": target
@@ -146,7 +160,7 @@ class Strategy:
 
             return {
                 "type": "ENTRY",
-                "action": "BUY",
+                "action": action,
                 "symbol": SYMBOL,
                 "entry": entry,
                 "sl": sl,
@@ -160,13 +174,28 @@ class Strategy:
 
             entry = close
 
-            sl = entry * 1.005
-            target = entry * 0.995
+            if self.same_colour:
 
-            print("📉 SELL BREAKOUT")
+                action = "SELL"
+                direction = "SELL"
+
+                sl = entry * 1.004
+                target = entry * 0.993
+
+                print("📉 SELL BREAKOUT")
+
+            else:
+
+                action = "BUY"
+                direction = "BUY"
+
+                sl = entry * 0.996
+                target = entry * 1.007
+
+                print("📈 REVERSE BUY BREAKOUT")
 
             self.position = {
-                "direction": "SELL",
+                "direction": direction,
                 "entry": entry,
                 "sl": sl,
                 "target": target
@@ -174,7 +203,7 @@ class Strategy:
 
             return {
                 "type": "ENTRY",
-                "action": "SELL",
+                "action": action,
                 "symbol": SYMBOL,
                 "entry": entry,
                 "sl": sl,

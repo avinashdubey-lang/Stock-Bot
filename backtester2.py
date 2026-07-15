@@ -8,12 +8,12 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-Days=30
+Days=180
 
-TARGET_PERCENT = 0.5
-SL_PERCENT = 0.5
+TARGET_PERCENT = 0.7
+SL_PERCENT = 0.4
 
-INITIAL_CAPITAL = 14000
+INITIAL_CAPITAL = 100000
 
 # 5x Intraday Leverage
 LEVERAGE = 5
@@ -94,22 +94,14 @@ for current_day in days:
     # CANDLE COLOR
     # =================================================
 
-    if (
-        second["Open"] == second["Close"]
-        or
-        third["Open"] == third["Close"]
-    ):
-        continue
-
+    
     same_color = (
         (second["Close"] > second["Open"] and third["Close"] > third["Open"])
         or
         (second["Close"] < second["Open"] and third["Close"] < third["Open"])
     )
 
-    if not same_color:
-        continue
-
+    
     range_high = max(
 
         second["High"],
@@ -144,23 +136,22 @@ for current_day in days:
 
             if candle["Close"] > range_high:
 
-                direction = "LONG"
-
-                entry = float(
-                    candle["Close"]
-                )
-
                 if same_color:
-                    target_percent = 0.52
+                    direction = "LONG"
                 else:
-                    target_percent = 0.27
+                    direction = "SHORT"
 
-                target = entry * (1 + TARGET_PERCENT / 100)
-                if same_color:
-                    sl_percent = 0.49
+                entry = float(candle["Close"])
+
+                if direction == "LONG":
+
+                    target = entry * (1 + TARGET_PERCENT / 100)
+                    sl = entry * (1 - SL_PERCENT / 100)
+
                 else:
-                    sl_percent = 0.38
-                sl = entry *(1-SL_PERCENT/100)
+
+                    target = entry * (1 - TARGET_PERCENT / 100)
+                    sl = entry * (1 + SL_PERCENT / 100)
 
                 # Quantity based on leveraged capital
 
@@ -177,24 +168,22 @@ for current_day in days:
 
             elif candle["Close"] < range_low:
 
-                direction = "SHORT"
-
-                entry = float(
-                    candle["Close"]
-                )
-
                 if same_color:
-                    target_percent = 0.53
+                    direction = "SHORT"
                 else:
-                    target_percent = 0.27
+                    direction = "LONG"
 
-                target = entry * (1 - TARGET_PERCENT / 100)
+                entry = float(candle["Close"])
 
-                if same_color:
-                    sl_percent = 0.49
+                if direction == "LONG":
+
+                    target = entry * (1 + TARGET_PERCENT / 100)
+                    sl = entry * (1 - SL_PERCENT / 100)
+
                 else:
-                    sl_percent = 0.38
-                sl = entry *(1+SL_PERCENT/100)
+
+                    target = entry * (1 - TARGET_PERCENT / 100)
+                    sl = entry * (1 + SL_PERCENT / 100)
 
                 quantity = (
                     effective_capital / entry

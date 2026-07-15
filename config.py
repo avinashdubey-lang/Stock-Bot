@@ -2,7 +2,7 @@
 
 MODE = "LIVE"       # "PAPER" or "LIVE"
 
-SYMBOL = "BHARTIARTL-EQ"
+SYMBOL = "SBIN-EQ"
 
 QUANTITY = 35
 
