@@ -88,6 +88,13 @@ class LiveFeed:
             # execution engine
             self.on_tick(ltp)
 
+            # ==========================
+            # STOP AFTER EOD
+            # ==========================
+            if self.engine.trading_done:
+                print("🛑 Trading finished for today. Skipping candle processing.")
+                return
+
             # candle builder
             candle = self.candle_builder.on_tick(ltp, ts)
 

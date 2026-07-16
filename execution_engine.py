@@ -24,6 +24,13 @@ class ExecutionEngine:
 
         print("ENGINE RECEIVED SIGNAL:", signal)
 
+        # ==========================
+        # TRADING DAY FINISHED
+        # ==========================
+        if self.trading_done:
+            print("🚫 Trading already finished. Ignoring entry signal.")
+            return
+
         # 🛡 RISK CHECK FIRST
         if not self.risk.can_take_trade():
             print("⛔ TRADE BLOCKED BY RISK MANAGER")
