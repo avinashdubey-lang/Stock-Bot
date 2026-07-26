@@ -8,12 +8,12 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-Days=180
+Days=4
 
 TARGET_PERCENT = 0.7
 SL_PERCENT = 0.4
 
-INITIAL_CAPITAL = 100000
+INITIAL_CAPITAL = 40000
 
 # 5x Intraday Leverage
 LEVERAGE = 5

@@ -1,9 +1,7 @@
 from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 import traceback
-import threading
 
 import time
-from datetime import datetime, time as dt_time
 
 
 from strategy import Strategy
@@ -123,39 +121,11 @@ def create_feed():
 
 feed = create_feed()
 
-def eod_watchdog():
-    global last_price
-
-    while True:
-
-        now = datetime.now().time()
-
-        if now >= dt_time(14, 59):
-
-            print("🔥 EOD WATCHDOG TRIGGERED")
-
-            if broker.position and last_price is not None:
-                print("🚨 FORCE EOD EXIT")
-
-                trade = broker.close_all("EOD_EXIT", last_price)
-
-                if trade:
-                    logger.log_trade(trade)
-                    risk.update_pnl(trade["pnl"])
-                    strategy.clear_position()
-
-                engine.trading_done = True
-
-            break
-
-        time.sleep(1)
-
 
 # ==========================
 # START SYSTEM
 # ==========================
 try:
-    threading.Thread(target=eod_watchdog, daemon=True).start()
     feed.start()
 except Exception as e:
     print("❌ FEED CRASH:")

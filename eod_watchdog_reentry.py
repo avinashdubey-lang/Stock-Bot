@@ -5,6 +5,8 @@ from risk_manager import RiskManager
 from trade_logger import TradeLogger
 from websocket_feed import CandleBuilder
 from datetime import datetime
+import threading
+import time
 
 
 class FakeDateTime:
@@ -57,6 +59,7 @@ class DummyBroker:
 
         print("\n" + "=" * 60)
         print("🚨 CLOSE_ALL CALLED")
+        print("THREAD:", threading.current_thread().name)
         print("REASON:", reason)
         print("POSITION BEFORE:", self.position)
 
@@ -65,9 +68,14 @@ class DummyBroker:
             print("=" * 60)
             return None
 
-        self.order_count += 1
-
+        # Both threads can potentially read the position
+        # before either one clears it.
         position = self.position.copy()
+
+        print("⏳ Simulating broker/API delay...")
+        time.sleep(0.2)
+
+        self.order_count += 1
 
         exit_side = (
             "SELL"
@@ -75,7 +83,8 @@ class DummyBroker:
             else "BUY"
         )
 
-        print("📤 SIMULATED ORDER SENT")
+        print("\n📤 SIMULATED ORDER SENT")
+        print("THREAD:", threading.current_thread().name)
         print("ORDER NUMBER:", self.order_count)
         print("SIDE:", exit_side)
 
@@ -166,8 +175,48 @@ class SimulationFeed:
 
 feed = SimulationFeed(strategy, engine)
 
+last_price = None
+
+
+def simulated_watchdog():
+
+    global last_price
+
+    print("🐕 WATCHDOG STARTED")
+
+    # Wait until our simulated clock reaches EOD
+    while FakeDateTime.current_time.time() < datetime.strptime(
+        "14:59:00", "%H:%M:%S"
+    ).time():
+        time.sleep(0.001)
+
+    print("\n🔥 WATCHDOG EOD TRIGGERED")
+    print("WATCHDOG POSITION:", broker.position)
+
+    if broker.position and last_price is not None:
+
+        print("🚨 WATCHDOG CALLING CLOSE_ALL")
+
+        trade = broker.close_all(
+            "EOD_EXIT",
+            last_price
+        )
+
+        if trade:
+            logger.log_trade(trade)
+            risk.update_pnl(trade["pnl"])
+            strategy.clear_position()
+
+        engine.trading_done = True
+
+    print("🐕 WATCHDOG FINISHED")
+
 
 def send_tick(price, timestamp):
+
+    global last_price
+
+    last_price = price
 
     dt = datetime.fromtimestamp(timestamp / 1000)
 
@@ -204,6 +253,17 @@ ticks = [
 
 ]
 
+watchdog_thread = threading.Thread(
+    target=simulated_watchdog,
+    name="EOD-WATCHDOG"
+)
+
+watchdog_thread.start()
+
 for t,p in ticks:
 
     send_tick(p,t)
+    time.sleep(0.05)
+
+
+watchdog_thread.join()
