@@ -8,7 +8,7 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-Days=4
+Days=180
 
 TARGET_PERCENT = 0.7
 SL_PERCENT = 0.4
@@ -131,6 +131,17 @@ for current_day in days:
         # =============================================
 
         if not trade_taken:
+
+            # =============================================
+            # ENTRY TIME FILTER
+            # No new trades at or after 12:00 PM
+            # =============================================
+
+            candle_time = candle["Datetime"].time()
+
+            if candle_time >= pd.Timestamp("12:45").time():
+                continue
+
 
             # LONG ENTRY
 
