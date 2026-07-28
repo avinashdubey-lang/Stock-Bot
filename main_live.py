@@ -2,7 +2,7 @@ from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_
 import traceback
 
 import time
-
+from datetime import datetime, date, time as dt_time
 
 from strategy import Strategy
 from execution_engine import ExecutionEngine
@@ -61,25 +61,51 @@ engine = ExecutionEngine(
 
 symboltoken = get_token(SYMBOL)
 
-while True:
+levels_initialized = False
+
+current_day = date.today()
+
+# ==========================
+# START NEW TRADING DAY
+# ==========================
+def start_new_day():
+
+    high, low, same_colour = get_opening_levels(
+        broker.smartApi,
+        SYMBOL
+    )
+
+    strategy.reset()
+    engine.reset()
+    risk.reset()
+
+    strategy.set_levels(
+        high,
+        low,
+        same_colour
+    )
+
+    print(f"📊 LEVELS SET: {high} / {low}")
+    print(f"🎨 SAME COLOR : {same_colour}")
+
+
+if datetime.now().time() >= dt_time(10, 0):
+
     try:
-        high, low, same_colour = get_opening_levels(broker.smartApi, SYMBOL)
 
-        strategy.reset()
-        engine.reset()
+        print("📊 Initializing today's levels...")
 
-        strategy.set_levels(high, low, same_colour)
+        start_new_day()
 
-        print(f"📊 LEVELS SET: {high} / {low}")
-        print(f"🎨 SAME COLOR : {same_colour}")
-
-        break
+        levels_initialized = True
 
     except Exception as e:
-        print("⏳ Waiting for opening levels...")
+
+        print("❌ Failed to initialize today's levels.")
         print(e)
 
-        time.sleep(60)
+else:
+    print("⏳ Waiting until 10:00 AM before initializing levels.")
 
 
 
@@ -87,10 +113,45 @@ while True:
 # TICK CALLBACK (CORE LOOP)
 # ==========================
 last_price = None
+
 def on_tick(price):
 
     global last_price
+    global current_day
+    global levels_initialized
+
+    # New trading day
+    if date.today() != current_day:
+
+        print("\n🌅 NEW TRADING DAY DETECTED")
+
+        current_day = date.today()
+
+        levels_initialized = False
+
+        feed.reset()
+
+    # Initialize today's levels after 10:00
+    if (
+        not levels_initialized
+        and datetime.now().time() >= dt_time(10, 0)
+    ):
+
+        try:
+
+            print("📊 Initializing today's levels...")
+
+            start_new_day()
+
+            levels_initialized = True
+
+        except Exception as e:
+
+            print("❌ Failed to initialize today's levels.")
+            print(e)
+
     last_price = price
+
 
     print("\nTICK:", price)
 
@@ -120,6 +181,7 @@ def create_feed():
 
 
 feed = create_feed()
+
 
 
 # ==========================

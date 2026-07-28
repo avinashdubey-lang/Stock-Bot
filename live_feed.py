@@ -33,6 +33,18 @@ class LiveFeed:
         self.ws.on_close = self.on_close
         print("WS OBJECT:", self.ws)
         print("ON MESSAGE:", self.ws.on_message)
+
+
+    # ==========================
+    # RESET NEW DAY
+    # ==========================
+    def reset(self):
+
+        self.candle_builder.reset()
+
+        print("🔄 Live Feed Reset")
+
+        
     # ==========================
     # CONNECT
     # ==========================

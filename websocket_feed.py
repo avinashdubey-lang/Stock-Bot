@@ -9,6 +9,17 @@ class CandleBuilder:
         self.current_candle = None
         self.current_bucket = None
 
+
+    # ==========================
+    # RESET
+    # ==========================
+    def reset(self):
+
+        self.current_bucket = None
+        self.current_candle = None
+
+        print("🧹 Candle Builder Reset")
+
     def bucket(self, ts):
         minute = (ts.minute // 15) * 15
         return ts.replace(minute=minute, second=0, microsecond=0)
