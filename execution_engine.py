@@ -16,6 +16,7 @@ class ExecutionEngine:
     # -----------------------
     def reset(self):
        self.trading_done = False
+       print("🔄 ENGINE RESET")
 
     # -----------------------
     # ENTRY HANDLER

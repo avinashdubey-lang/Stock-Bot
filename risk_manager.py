@@ -57,3 +57,4 @@ class RiskManager:
         self.trades_taken = 0
         self.daily_pnl = 0
         self.trading_blocked = False
+        print("🔄 RISK RESET")

@@ -187,8 +187,15 @@ feed = create_feed()
 # ==========================
 # START SYSTEM
 # ==========================
+
+print("🚀 BEFORE feed.start()")
+
 try:
     feed.start()
 except Exception as e:
     print("❌ FEED CRASH:")
     traceback.print_exc()
+
+
+print("🔥 feed.start() RETURNED")
+print("🏁 END OF PROGRAM")

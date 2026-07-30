@@ -25,6 +25,7 @@ class Strategy:
         self.trade_taken = False
         self.position = None
         self.same_colour = False
+        print("🔄 STRATEGY RESET")
 
 
     # ==========================

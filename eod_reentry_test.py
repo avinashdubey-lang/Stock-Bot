@@ -22,13 +22,7 @@ class DummyBroker:
 
     def __init__(self):
 
-        self.position = {
-            "symbol": "TEST",
-            "direction": "BUY",
-            "entry": 100,
-            "target": 110,
-            "stoploss": 90
-        }
+        self.position = None
 
         self.order_count = 0
 
@@ -114,10 +108,6 @@ engine = ExecutionEngine(
     strategy
 )
 
-strategy.reset()
-engine.reset()
-
-strategy.set_levels(102, 98, True)
 
 class SimulationFeed:
 
@@ -166,6 +156,17 @@ class SimulationFeed:
 
 feed = SimulationFeed(strategy, engine)
 
+# Simulate bot already initialized on Day 1
+strategy.reset()
+engine.reset()
+risk.reset()
+
+strategy.set_levels(
+    high_level=102,
+    low_level=98,
+    same_colour=True
+)
+
 
 def send_tick(price, timestamp):
 
@@ -186,24 +187,102 @@ def send_tick(price, timestamp):
 
     feed.on_data(msg)
 
-def make_timestamp(hour, minute, second):
-    dt = datetime(2026, 1, 1, hour, minute, second)
+def make_timestamp(day, hour, minute, second):
+
+    dt = datetime(2026, 1, day, hour, minute, second)
+
     return int(dt.timestamp() * 1000)
 
 
 ticks = [
 
-    (make_timestamp(14, 58, 45), 100),
-    (make_timestamp(14, 58, 50), 101),
-    (make_timestamp(14, 58, 55), 102),
-    (make_timestamp(14, 59,  0), 103),
-    (make_timestamp(14, 59,  5), 104),
-    (make_timestamp(14, 59, 10), 105),
+    # ==========================
+    # DAY 1
+    # ==========================
 
-    (make_timestamp(15, 0, 0),106),
+    (make_timestamp(1,10,0,0),100),
+    (make_timestamp(1,10,5,0),101),
+    (make_timestamp(1,10,10,0),103),
+    (make_timestamp(1,10,14,55),104),
 
+    # closes 10:00 candle
+    (make_timestamp(1,10,15,0),105),
+
+    # next candle
+    (make_timestamp(1,10,20,0),106),
+
+    # EOD
+    (make_timestamp(1,14,59,0),106),
+
+    # ==========================
+    # DAY 2
+    # ==========================
+
+    (make_timestamp(2,10,0,0),106),
+    (make_timestamp(2,10,5,0),107),
+    (make_timestamp(2,10,10,0),109),
+    (make_timestamp(2,10,14,55),111),
+
+    # closes 10:00 candle
+    (make_timestamp(2,10,15,0),112),
+
+    # next candle
+    (make_timestamp(2,10,20,0),113),
 ]
 
-for t,p in ticks:
+# ===========================================
+# SIMULATE main_live.py
+# ===========================================
 
-    send_tick(p,t)
+levels_initialized = True
+current_day = datetime.fromtimestamp(ticks[0][0] / 1000).date()
+
+
+def start_new_day():
+
+    print("🚀 start_new_day() CALLED")
+
+    strategy.reset()
+    engine.reset()
+    risk.reset()
+
+    strategy.set_levels(
+        high_level=110,
+        low_level=105,
+        same_colour=True
+    )
+
+
+for t, p in ticks:
+
+    ts = datetime.fromtimestamp(t / 1000)
+
+    # -------------------------
+    # SAME LOGIC AS main_live.py
+    # -------------------------
+    if ts.date() != current_day:
+
+        print("\n🌅 NEW TRADING DAY DETECTED")
+
+        current_day = ts.date()
+
+        levels_initialized = False
+
+        feed.candle_builder.reset()
+
+    if (
+        not levels_initialized
+        and ts.hour >= 10
+    ):
+
+        start_new_day()
+
+        levels_initialized = True
+
+    send_tick(p, t)
+
+    print("\nSTATE")
+    print("Trading Done :", engine.trading_done)
+    print("Trades Taken :", risk.trades_taken)
+    print("Strategy Position :", strategy.position)
+    print("Broker Position :", broker.position)
