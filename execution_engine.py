@@ -9,14 +9,6 @@ class ExecutionEngine:
         self.logger = logger
         self.risk = risk_manager
         self.strategy = strategy
-        self.trading_done = False
-
-    # -----------------------
-    # RESET
-    # -----------------------
-    def reset(self):
-       self.trading_done = False
-       print("🔄 ENGINE RESET")
 
     # -----------------------
     # ENTRY HANDLER
@@ -28,9 +20,7 @@ class ExecutionEngine:
         # ==========================
         # TRADING DAY FINISHED
         # ==========================
-        if self.trading_done:
-            print("🚫 Trading already finished. Ignoring entry signal.")
-            return
+
 
         # 🛡 RISK CHECK FIRST
         if not self.risk.can_take_trade():
@@ -67,6 +57,21 @@ class ExecutionEngine:
             "pnl": 0
         })
 
+    def _close_trade(self, reason, exit_price):
+
+        trade = self.broker.close_all(reason, exit_price)
+
+        if not trade:
+            return None
+
+        self.risk.update_pnl(trade["pnl"])
+        self.logger.log_trade(trade)
+        self.strategy.clear_position()
+
+        print(f"🔴 TRADE CLOSED : {reason}")
+
+        return trade
+
     # -----------------------
     # EXIT HANDLER (CANDLE CLOSE)
     # -----------------------
@@ -75,17 +80,8 @@ class ExecutionEngine:
         if not self.broker.position:
             return
         
+        self._close_trade(reason, exit_price)
 
-        trade = self.broker.close_all(reason, exit_price)
-
-        if trade:
-            self.risk.update_pnl(trade["pnl"])
-            self.logger.log_trade(trade)
-            self.strategy.clear_position()
-
-        self.trading_done = True
-
-        print(f"🔴 TRADE CLOSED : {reason}")
 
     # -----------------------
     # EXIT HANDLER
@@ -95,11 +91,8 @@ class ExecutionEngine:
         print("🧠 ENGINE RECEIVED LIVE TICK:", ltp)
 
         print("ENGINE ON_TICK CALLED:", ltp)
-        print("TRADING_DONE =", self.trading_done)
         print("BROKER POSITION =", self.broker.position)
 
-        if self.trading_done:
-            return
 
         if not self.broker.position:
             return
@@ -122,16 +115,10 @@ class ExecutionEngine:
             print("CURRENT POSITION:", self.broker.position)
             print("CURRENT LTP:", ltp)
 
-            trade = self.broker.close_all("EOD_EXIT", ltp)
+            trade = self._close_trade("EOD_EXIT", ltp)
 
             print("CLOSE_ALL RETURN:", trade)
 
-            if trade:
-                self.risk.update_pnl(trade["pnl"])
-                self.logger.log_trade(trade)
-                self.strategy.clear_position()
-
-            self.trading_done = True
             print("🔴 EOD EXIT")
             return
         
@@ -146,14 +133,8 @@ class ExecutionEngine:
 
                 print("❌ BUY STOP LOSS HIT")
 
-                trade = self.broker.close_all("SL_HIT", ltp)
+                self._close_trade("SL_HIT", ltp)
 
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-                    self.strategy.clear_position()
-
-                self.trading_done = True
                 return
 
         else:
@@ -162,14 +143,8 @@ class ExecutionEngine:
 
                 print("❌ SELL STOP LOSS HIT")
 
-                trade = self.broker.close_all("SL_HIT", ltp)
+                self._close_trade("SL_HIT", ltp)
 
-                if trade:
-                    self.risk.update_pnl(trade["pnl"])
-                    self.logger.log_trade(trade)
-                    self.strategy.clear_position()
-
-                self.trading_done = True
                 return
 
         return 
