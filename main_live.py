@@ -1,6 +1,9 @@
 from config import MODE, QUANTITY, SYMBOL, API_KEY, CLIENT_CODE, PASSWORD, TOTP_SECRET
 import traceback
 
+import sys
+from market_calendar import is_trading_day
+
 import time
 from datetime import datetime, time as dt_time
 
@@ -45,6 +48,18 @@ def create_broker():
 # ==========================
 # INIT SYSTEM COMPONENTS
 # ==========================
+
+# ==========================
+# MARKET DAY CHECK
+# ==========================
+
+if not is_trading_day():
+
+    print("📅 MARKET CLOSED")
+    print("🛑 No trading session today.")
+    sys.exit(0)
+
+    
 broker = create_broker()
 smartApi = broker.smartApi
 
