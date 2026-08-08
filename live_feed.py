@@ -143,3 +143,9 @@ class LiveFeed:
         except Exception as e:
 
             print("❌ ERROR:", e)
+
+    def on_error(self, ws, error):
+        print("WS ERROR:", error)
+
+    def on_close(self, ws):
+        print("🔴 FEED CLOSED")
