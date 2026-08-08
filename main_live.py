@@ -8,6 +8,7 @@ from strategy import Strategy
 from execution_engine import ExecutionEngine
 from risk_manager import RiskManager
 from trade_logger import TradeLogger
+from trading_session import TradingSession
 from market_data import get_opening_levels, get_token
 from login import login_user
 
@@ -51,6 +52,8 @@ logger = TradeLogger()
 risk = RiskManager()
 
 strategy = Strategy()
+
+session = TradingSession()
 
 engine = ExecutionEngine(
     broker,
@@ -121,6 +124,8 @@ def create_feed():
 
 
 feed = create_feed()
+
+session.attach_feed(feed)
 
 
 

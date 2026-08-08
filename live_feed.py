@@ -34,15 +34,14 @@ class LiveFeed:
         print("WS OBJECT:", self.ws)
         print("ON MESSAGE:", self.ws.on_message)
 
+    def stop(self):
 
-    # ==========================
-    # RESET NEW DAY
-    # ==========================
-    def reset(self):
+        print("🛑 Stopping live feed...")
 
-        self.candle_builder.reset()
+        if self.ws:
+            self.ws.close_connection()
 
-        print("🔄 Live Feed Reset")
+        print("🔴 Live feed stopped")
 
         
     # ==========================
@@ -89,31 +88,40 @@ class LiveFeed:
 
         try:
             ltp = message.get("last_traded_price", 0) / 100
-            ts = datetime.fromtimestamp(message["exchange_timestamp"] / 1000)
+            ts = datetime.fromtimestamp(
+                message["exchange_timestamp"] / 1000
+            )
 
             print("\n🔥 RAW TICK RECEIVED")
             print("LTP:", ltp)
             print("TIME:", ts)
-            print("VOLUME:", message.get("volume_trade_for_the_day"))
+            print(
+                "VOLUME:",
+                message.get("volume_trade_for_the_day")
+            )
 
-            print("➡️ LIVE FEED SENDING TO ENGINE:", ltp)
-            # execution engine
+            print(
+                "➡️ LIVE FEED SENDING TO ENGINE:",
+                ltp
+            )
+
             self.on_tick(ltp)
 
-            # ==========================
-            # STOP AFTER EOD
-            # ==========================
-            if self.engine.trading_done:
-                print("🛑 Trading finished for today. Skipping candle processing.")
-                return
-
-            # candle builder
-            candle = self.candle_builder.on_tick(ltp, ts)
+            candle = self.candle_builder.on_tick(
+                ltp,
+                ts
+            )
 
             if candle:
-                print("\n📊 CANDLE CLOSED:", candle)
-                
-                signal = self.strategy.on_candle(candle)
+
+                print(
+                    "\n📊 CANDLE CLOSED:",
+                    candle
+                )
+
+                signal = self.strategy.on_candle(
+                    candle
+                )
 
                 print("SIGNAL:", signal)
 
@@ -121,7 +129,9 @@ class LiveFeed:
 
                     if signal["type"] == "ENTRY":
 
-                        self.engine.on_signal(signal)
+                        self.engine.on_signal(
+                            signal
+                        )
 
                     elif signal["type"] == "EXIT":
 
@@ -131,10 +141,5 @@ class LiveFeed:
                         )
 
         except Exception as e:
+
             print("❌ ERROR:", e)
-
-    def on_error(self, ws, error):
-        print("WS ERROR:", error)
-
-    def on_close(self, ws):
-        print("🔴 FEED CLOSED")

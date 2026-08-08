@@ -1,14 +1,21 @@
-#execution_engine
 from datetime import datetime, time
 
 
 class ExecutionEngine:
 
-    def __init__(self, broker, logger, risk_manager, strategy):
+    def __init__(
+        self,
+        broker,
+        logger,
+        risk_manager,
+        strategy,
+        session
+    ):
         self.broker = broker
         self.logger = logger
         self.risk = risk_manager
         self.strategy = strategy
+        self.session = session
 
     # -----------------------
     # ENTRY HANDLER
@@ -16,11 +23,6 @@ class ExecutionEngine:
     def on_signal(self, signal):
 
         print("ENGINE RECEIVED SIGNAL:", signal)
-
-        # ==========================
-        # TRADING DAY FINISHED
-        # ==========================
-
 
         # 🛡 RISK CHECK FIRST
         if not self.risk.can_take_trade():
@@ -44,7 +46,10 @@ class ExecutionEngine:
 
         self.risk.record_trade()
 
-        print(f"🟢 TRADE OPENED: {signal['action']} @ {signal['entry']}")
+        print(
+            f"🟢 TRADE OPENED: "
+            f"{signal['action']} @ {signal['entry']}"
+        )
 
         self.logger.log_trade({
             "symbol": signal["symbol"],
@@ -57,71 +62,154 @@ class ExecutionEngine:
             "pnl": 0
         })
 
+    # -----------------------
+    # CLOSE TRADE
+    # -----------------------
     def _close_trade(self, reason, exit_price):
 
-        trade = self.broker.close_all(reason, exit_price)
+        trade = self.broker.close_all(
+            reason,
+            exit_price
+        )
 
         if not trade:
+            print("❌ TRADE CLOSE FAILED")
             return None
 
-        self.risk.update_pnl(trade["pnl"])
-        self.logger.log_trade(trade)
+        self.risk.update_pnl(
+            trade["pnl"]
+        )
+
+        self.logger.log_trade(
+            trade
+        )
+
         self.strategy.clear_position()
 
-        print(f"🔴 TRADE CLOSED : {reason}")
+        print(
+            f"🔴 TRADE CLOSED : {reason}"
+        )
+
+        # The trade is finished.
+        # Therefore today's session is finished.
+        self.session.end(reason)
 
         return trade
 
     # -----------------------
-    # EXIT HANDLER (CANDLE CLOSE)
+    # EXIT HANDLER
     # -----------------------
     def on_exit_signal(self, reason, exit_price):
 
         if not self.broker.position:
             return
-        
-        self._close_trade(reason, exit_price)
 
+        self._close_trade(
+            reason,
+            exit_price
+        )
 
     # -----------------------
-    # EXIT HANDLER
+    # LIVE TICK HANDLER
     # -----------------------
     def on_tick(self, ltp):
 
-        print("🧠 ENGINE RECEIVED LIVE TICK:", ltp)
+        print(
+            "🧠 ENGINE RECEIVED LIVE TICK:",
+            ltp
+        )
 
-        print("ENGINE ON_TICK CALLED:", ltp)
-        print("BROKER POSITION =", self.broker.position)
+        print(
+            "ENGINE ON_TICK CALLED:",
+            ltp
+        )
 
+        print(
+            "BROKER POSITION =",
+            self.broker.position
+        )
+
+        now = datetime.now().time()
+
+        # -----------------------
+        # NO TRADE EOD
+        # -----------------------
+        #
+        # IMPORTANT:
+        # This must happen BEFORE
+        # checking broker.position.
+        #
+        # If there was no trade today,
+        # the bot must still shut down
+        # at 3:15 PM.
+        # -----------------------
+
+        if now >= time(15, 15):
+
+            if not self.broker.position:
+
+                print(
+                    "🕒 3:15 PM REACHED"
+                )
+
+                print(
+                    "📭 NO TRADE TODAY"
+                )
+
+                self.session.end(
+                    "NO_TRADE"
+                )
+
+                return
+
+        # -----------------------
+        # NO OPEN POSITION
+        # -----------------------
 
         if not self.broker.position:
             return
-        
+
         pos = self.broker.position.copy()
 
         direction = pos["direction"]
         sl = pos["stoploss"]
 
-        
-        now = datetime.now().time()
+        # -----------------------
+        # EOD EXIT
+        # -----------------------
 
-        # -----------------------
-        # EOD EXIT (STRICT)
-        # -----------------------
         if now >= time(14, 59):
 
-            print("🚨 EOD CONDITION TRIGGERED")
-            print("CURRENT TIME:", now)
-            print("CURRENT POSITION:", self.broker.position)
-            print("CURRENT LTP:", ltp)
+            print(
+                "🚨 EOD CONDITION TRIGGERED"
+            )
 
-            trade = self._close_trade("EOD_EXIT", ltp)
+            print(
+                "CURRENT TIME:",
+                now
+            )
 
-            print("CLOSE_ALL RETURN:", trade)
+            print(
+                "CURRENT POSITION:",
+                self.broker.position
+            )
 
-            print("🔴 EOD EXIT")
+            print(
+                "CURRENT LTP:",
+                ltp
+            )
+
+            trade = self._close_trade(
+                "EOD_EXIT",
+                ltp
+            )
+
+            print(
+                "CLOSE_ALL RETURN:",
+                trade
+            )
+
             return
-        
 
         # -----------------------
         # STRICT STOP LOSS
@@ -131,9 +219,14 @@ class ExecutionEngine:
 
             if float(ltp) <= float(sl):
 
-                print("❌ BUY STOP LOSS HIT")
+                print(
+                    "❌ BUY STOP LOSS HIT"
+                )
 
-                self._close_trade("SL_HIT", ltp)
+                self._close_trade(
+                    "SL_HIT",
+                    ltp
+                )
 
                 return
 
@@ -141,10 +234,13 @@ class ExecutionEngine:
 
             if float(ltp) >= float(sl):
 
-                print("❌ SELL STOP LOSS HIT")
+                print(
+                    "❌ SELL STOP LOSS HIT"
+                )
 
-                self._close_trade("SL_HIT", ltp)
+                self._close_trade(
+                    "SL_HIT",
+                    ltp
+                )
 
                 return
-
-        return 
