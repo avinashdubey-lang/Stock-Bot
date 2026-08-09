@@ -74,7 +74,8 @@ engine = ExecutionEngine(
     broker,
     logger,
     risk,
-    strategy
+    strategy,
+    session
 )
 
 symboltoken = get_token(SYMBOL)
