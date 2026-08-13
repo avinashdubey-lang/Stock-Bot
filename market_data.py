@@ -4,6 +4,10 @@ import pandas as pd
 import datetime as dt
 import time
 
+MAX_CANDLE_RETRIES = 15
+CANDLE_RETRY_DELAY = 60
+
+
 MASTER_URL = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
 
 # ==========================
@@ -73,78 +77,95 @@ def get_token(symbol):
 
 def get_candles(smartApi, symbol, interval="FIFTEEN_MINUTE"):
 
-    try:
+    token = get_token(symbol)
 
-        token = get_token(symbol)
+    today = dt.datetime.now().date()
 
-        today = dt.datetime.now().date()
+    from_date = dt.datetime.combine(
+        today,
+        dt.time(9, 15)
+    )
 
-        from_date = dt.datetime.combine(
-            today,
-            dt.time(9, 15)
-        )
+    to_date = dt.datetime.now()
 
-        to_date = dt.datetime.now()
+    params = {
+        "exchange": "NSE",
+        "symboltoken": token,
+        "interval": interval,
+        "fromdate": from_date.strftime("%Y-%m-%d %H:%M"),
+        "todate": to_date.strftime("%Y-%m-%d %H:%M")
+    }
 
-        params = {
-            "exchange": "NSE",
-            "symboltoken": token,
-            "interval": interval,
-            "fromdate": from_date.strftime("%Y-%m-%d %H:%M"),
-            "todate": to_date.strftime("%Y-%m-%d %H:%M")
-        }
+    columns = [
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+    ]
 
-        print("📥 Fetching candle data...")
+    for attempt in range(1, MAX_CANDLE_RETRIES + 1):
 
-        candles = smartApi.getCandleData(params)
+        try:
 
-        if not candles or "data" not in candles:
-            return pd.DataFrame(
-                columns=[
-                    "time",
-                    "open",
-                    "high",
-                    "low",
-                    "close",
-                    "volume"
-                ]
+            print(
+                f"📥 Fetching candle data "
+                f"(attempt {attempt}/{MAX_CANDLE_RETRIES})..."
             )
 
-        df = pd.DataFrame(
-            candles["data"],
-            columns=[
-                "time",
-                "open",
-                "high",
-                "low",
-                "close",
-                "volume"
-            ]
-        )
+            candles = smartApi.getCandleData(params)
 
-        df["time"] = pd.to_datetime(df["time"])
+            if not candles or "data" not in candles:
 
-        return df
+                raise Exception(
+                    "Empty or invalid candle response"
+                )
 
-    except Exception as e:
+            df = pd.DataFrame(
+                candles["data"],
+                columns=columns
+            )
 
-        print("\n⚠️ SMARTAPI RATE LIMIT / API ERROR")
-        print(e)
+            if df.empty:
+                raise Exception(
+                    "Candle response contained no rows"
+                )
 
-        print("⏳ Sleeping for 10 seconds...")
-        time.sleep(60)
+            df["time"] = pd.to_datetime(df["time"])
 
-        return pd.DataFrame(
-            columns=[
-                "time",
-                "open",
-                "high",
-                "low",
-                "close",
-                "volume"
-            ]
-        )
+            print(
+                f"✅ Candle data received "
+                f"on attempt {attempt}"
+            )
 
+            return df
+
+        except Exception as e:
+
+            print(
+                f"\n⚠️ CANDLE API ATTEMPT "
+                f"{attempt}/{MAX_CANDLE_RETRIES} FAILED"
+            )
+
+            print(e)
+
+            if attempt < MAX_CANDLE_RETRIES:
+
+                print(
+                    f"⏳ Retrying in "
+                    f"{CANDLE_RETRY_DELAY} seconds..."
+                )
+
+                time.sleep(CANDLE_RETRY_DELAY)
+
+            else:
+
+                print(
+                    "\n❌ ALL CANDLE API RETRIES FAILED"
+                )
+
+    return pd.DataFrame(columns=columns)
 
 # ==========================
 # LIVE STREAM (STABLE VERSION)
