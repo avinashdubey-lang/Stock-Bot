@@ -1,4 +1,16 @@
-__pycache__/
-*.pyc
+@"
 logs/
 trade_log.csv
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Generated trade data
+*_all_trades.csv
+integration_log.csv
+
+# Backtest outputs
+backtest_results/
+vwap_pivot_backtest_results/
+"@ | Set-Content .gitignore
