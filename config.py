@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 MODE = "LIVE"       # "PAPER" or "LIVE"
 
-SYMBOL = "BHARTIARTL-EQ"
+load_dotenv()
+
+SYMBOL = os.getenv("ANGEL_SYMBOL")
 
 QUANTITY = 88
 
@@ -16,7 +18,7 @@ PRODUCT_TYPE = "INTRADAY"
 # Angel One (used only in LIVE mode)
 
 
-load_dotenv()
+
 
 API_KEY = os.getenv("ANGEL_API_KEY")
 CLIENT_CODE = os.getenv("ANGEL_CLIENT_CODE")
