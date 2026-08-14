@@ -1,5 +1,8 @@
 # config.py
 
+import os
+from dotenv import load_dotenv
+
 MODE = "LIVE"       # "PAPER" or "LIVE"
 
 SYMBOL = "BHARTIARTL-EQ"
@@ -11,10 +14,11 @@ EXCHANGE = "NSE"
 PRODUCT_TYPE = "INTRADAY"
 
 # Angel One (used only in LIVE mode)
-API_KEY = "K9Fhvfho"
 
-CLIENT_CODE = "AAAN998226"
 
-PASSWORD = "3027"
+load_dotenv()
 
-TOTP_SECRET = "UA3PJRBKTOTUQSVH67Y4F5ZEZM"
+API_KEY = os.getenv("ANGEL_API_KEY")
+CLIENT_CODE = os.getenv("ANGEL_CLIENT_CODE")
+PASSWORD = os.getenv("ANGEL_PASSWORD")
+TOTP_SECRET = os.getenv("ANGEL_TOTP_SECRET")

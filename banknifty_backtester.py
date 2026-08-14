@@ -2,10 +2,7 @@
 Download 30-minute Bank Nifty historical candles from Angel One SmartAPI.
 
 Credentials are read from environment variables:
-    K9Fhvfho
-    AAAN998226
-    3027
-    UA3PJRBKTOTUQSVH67Y4F5ZEZM
+
 """
 
 import os

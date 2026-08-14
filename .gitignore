@@ -6,6 +6,9 @@ trade_log.csv
 __pycache__/
 *.pyc
 
+# Local legacy code
+archive/
+
 # Generated trade data
 *_all_trades.csv
 integration_log.csv
