@@ -1,4 +1,4 @@
-from Data_fetcher import get_historical_data
+from .Data_fetcher import get_historical_data
 from login import login_user
 from market_data import get_token
 from config import SYMBOL

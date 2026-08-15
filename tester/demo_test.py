@@ -1,4 +1,4 @@
-from Data_fetcher import get_historical_data
+from backtester.Data_fetcher import get_historical_data
 from login import login_user
 from market_data import get_token
 from config import SYMBOL
@@ -8,12 +8,13 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-Days=180
+Days=360
 
-TARGET_PERCENT = 0.7
-SL_PERCENT = 0.4
+TARGET_PERCENT = 0.5
+SL_PERCENT = 0.5
+BROKERAGE_PER_TRADE = 70
 
-INITIAL_CAPITAL = 100000
+INITIAL_CAPITAL = 14000
 
 # 5x Intraday Leverage
 LEVERAGE = 5
@@ -94,14 +95,21 @@ for current_day in days:
     # CANDLE COLOR
     # =================================================
 
-    
+    if (
+        second["Open"] == second["Close"]
+        or
+        third["Open"] == third["Close"]
+    ):
+        continue
+
     same_color = (
         (second["Close"] > second["Open"] and third["Close"] > third["Open"])
         or
         (second["Close"] < second["Open"] and third["Close"] < third["Open"])
     )
 
-    
+
+
     range_high = max(
 
         second["High"],
@@ -133,69 +141,34 @@ for current_day in days:
         if not trade_taken:
 
             # LONG ENTRY
-
             if candle["Close"] > range_high:
-
-                if same_color:
-                    direction = "LONG"
-                    target_percent = 0.7
-                    sl_percent = 0.4
-                else:
-                    direction = "SHORT"
-                    target_percent = 0.5
-                    sl_percent = 0.5
+                direction = "LONG"
 
                 entry = float(candle["Close"])
 
-                if direction == "LONG":
+                target = entry * (1 + TARGET_PERCENT / 100)
 
-                    target = entry * (1 + target_percent / 100)
-                    sl = entry * (1 - sl_percent / 100)
+                sl = entry * (1 - SL_PERCENT / 100)
 
-                else:
-
-                    target = entry * (1 - target_percent / 100)
-                    sl = entry * (1 + sl_percent / 100)
-
-                # Quantity based on leveraged capital
-
-                quantity = (
-                    effective_capital / entry
-                )
+                quantity = effective_capital / entry
 
                 trade_taken = True
 
                 continue
 
 
+
             # SHORT ENTRY
-
             elif candle["Close"] < range_low:
-
-                if same_color:
-                    direction = "SHORT"
-                    target_percent = 0.7
-                    sl_percent = 0.4
-                else:
-                    direction = "LONG"
-                    target_percent = 0.5
-                    sl_percent = 0.5
+                direction = "SHORT"
 
                 entry = float(candle["Close"])
 
-                if direction == "LONG":
+                target = entry * (1 - TARGET_PERCENT / 100)
 
-                    target = entry * (1 + target_percent / 100)
-                    sl = entry * (1 - sl_percent / 100)
+                sl = entry * (1 + SL_PERCENT / 100)
 
-                else:
-
-                    target = entry * (1 - target_percent / 100)
-                    sl = entry * (1 + sl_percent / 100)
-
-                quantity = (
-                    effective_capital / entry
-                )
+                quantity = effective_capital / entry
 
                 trade_taken = True
 
@@ -212,95 +185,37 @@ for current_day in days:
             pnl = None
             reason = None
 
-            # =========================================
             # LONG TRADE
-            # =========================================
-
             if direction == "LONG":
 
-                # STOPLOSS
-
-                if candle["Close"] <= sl:
-
-                    exit_price = sl
-
-                    pnl = (
-
-                        (exit_price - entry)
-
-                        * quantity
-
-                    )
-
-                    reason = "SL"
-
-
-                # TARGET
-
-                elif candle["Close"] >= target:
-
-                    exit_price = float(
-                        candle["Close"]
-                    )
-
-                    pnl = (
-
-                        (exit_price - entry)
-
-                        * quantity
-
-                    )
-
+                if candle["High"] >= target:
+                    exit_price = target
+                    pnl = (exit_price - entry) * quantity
                     reason = "TARGET"
 
+                elif candle["Low"] <= sl:
+                    exit_price = sl
+                    pnl = (exit_price - entry) * quantity
+                    reason = "SL"
 
-            # =========================================
             # SHORT TRADE
-            # =========================================
-
             else:
 
-                # STOPLOSS
-
-                if candle["Close"] >= sl:
-
-                    exit_price = sl
-
-                    pnl = (
-
-                        (entry - exit_price)
-
-                        * quantity
-
-                    )
-
-                    reason = "SL"
-
-
-                # TARGET
-
-                elif candle["Close"] <= target:
-
-                    exit_price = float(
-                        candle["Close"]
-                    )
-
-                    pnl = (
-
-                        (entry - exit_price)
-
-                        * quantity
-
-                    )
-
+                if candle["Low"] <= target:
+                    exit_price = target
+                    pnl = (entry - exit_price) * quantity
                     reason = "TARGET"
 
+                elif candle["High"] >= sl:
+                    exit_price = sl
+                    pnl = (entry - exit_price) * quantity
+                    reason = "SL"
 
             # =============================================
             # EOD EXIT
             # =============================================
 
-            if exit_price is None and i == len(day) - 1:
+            if trade_taken and exit_price is None and i == len(day) - 1:
 
                 exit_price = float(candle["Close"])
 
@@ -320,11 +235,13 @@ for current_day in days:
 
                 reason = "EOD"
 
-            # =============================================
-            # SAVE TRADE
-            # =============================================
+                # =============================================
+                # SAVE TRADE
+                # =============================================
 
             if exit_price is not None:
+
+                pnl -= BROKERAGE_PER_TRADE
 
                 capital += pnl
 
@@ -369,6 +286,8 @@ for current_day in days:
 
                     "Quantity": round(quantity,2),
 
+                    "Brokerage": BROKERAGE_PER_TRADE,
+
                     "PnL": round(pnl,2),
 
                     "Capital": round(capital,2),
@@ -391,6 +310,61 @@ if trades_df.empty:
     print("No trades generated.")
     exit()
 
+
+# =====================================================
+# MONTHLY METRICS
+# =====================================================
+
+trades_df["Date"] = pd.to_datetime(trades_df["Date"])
+trades_df["Month"] = trades_df["Date"].dt.to_period("M")
+
+print("\n")
+print("=" * 150)
+print("MONTHLY PERFORMANCE")
+print("=" * 150)
+
+for month, month_df in trades_df.groupby("Month"):
+
+    total_trades = len(month_df)
+
+    wins = len(month_df[month_df["Result"] == "TARGET"])
+    losses = len(month_df[month_df["Result"] == "SL"])
+    eod = len(month_df[month_df["Result"] == "EOD"])
+
+    completed = wins + losses
+
+    if completed > 0:
+        win_rate = (wins / completed) * 100
+    else:
+        win_rate = 0
+
+    starting_capital = (
+        INITIAL_CAPITAL
+        if month_df.index[0] == trades_df.index[0]
+        else trades_df.loc[month_df.index[0] - 1, "Capital"]
+    )
+
+    ending_capital = month_df.iloc[-1]["Capital"]
+
+    monthly_return = (
+        (ending_capital - starting_capital)
+        / starting_capital
+    ) * 100
+
+    month_dd = month_df["Drawdown%"].max()
+
+    print(f"\n📅 {month}")
+    print("-" * 60)
+    print(f"Starting Capital : {starting_capital:.2f}")
+    print(f"Ending Capital   : {ending_capital:.2f}")
+    print(f"Monthly Return   : {monthly_return:.2f}%")
+    print(f"Total Trades     : {total_trades}")
+    print(f"Winning Trades   : {wins}")
+    print(f"Losing Trades    : {losses}")
+    print(f"EOD Exits        : {eod}")
+    print(f"Win Rate         : {win_rate:.2f}%")
+    print(f"Max Drawdown     : {month_dd:.2f}%")
+
 # =====================================================
 # WIN RATE
 # =====================================================
@@ -404,12 +378,6 @@ wins = len(
 losses = len(
     trades_df[
         trades_df["Result"] == "SL"
-    ]
-)
-
-be = len(
-    trades_df[
-        trades_df["Result"] == "BE"
     ]
 )
 
@@ -493,11 +461,6 @@ print(
 print(
     "EOD Exits:",
     eod
-)
-
-print(
-    "Break Even Trades :",
-    be
 )
 
 print(

@@ -1244,17 +1244,10 @@ through configuration rather than embedding them directly into the codebase.
 
 ## Project Structure
 
-The repository is organized around the live trading pipeline, broker
-abstraction, risk management, session management, and supporting research
-tools.
-
 ```text
-Stock-Bot/
+Stock-Trading-Engine/
 │
 ├── main_live.py
-│
-├── config.py
-├── login.py
 │
 ├── live_feed.py
 ├── websocket_feed.py
@@ -1267,74 +1260,34 @@ Stock-Bot/
 ├── risk_manager.py
 │
 ├── broker_adapter.py
-├── angel_broker.py
 ├── paper_broker.py
+├── angel_broker.py
+│
+├── login.py
+├── config.py
 │
 ├── trade_logger.py
 ├── trading_session.py
 │
-├── backtester.py
-├── backtester2.py
-├── backtester3.py
-├── multiple_backtest.py
-├── MultiStock_tester.py
-├── nifty_orb_backtest.py
-├── vwap_pivot_backtest.py
-├── banknifty_backtester.py
-├── Data_fetcher.py
+├── backtester/
+│   ├── __init__.py
+│   ├── Data_fetcher.py
+│   ├── backtester.py
+│   ├── backtester2.py
+│   ├── backtester3.py
+│   └── banknifty_backtester.py
 │
-├── integration_test.py
-├── demo_test.py
-├── testing.py
-├── eod_reentry_test.py
-└── eod_watchdog_reentry.py
+├── tester/
+│   ├── demo_test.py
+│   ├── integration_test.py
+│   ├── testing.py
+│   ├── eod_reentry_test.py
+│   └── eod_watchdog_reentry.py
+│
+├── .env.example
+├── .gitignore
+└── README.md
 ```
-
-### Runtime Components
-
-```text
-main_live.py
-     │
-     ├── Authentication
-     │
-     ├── Market Data
-     │      ├── live_feed.py
-     │      ├── websocket_feed.py
-     │      └── market_data.py
-     │
-     ├── Strategy
-     │      └── strategy.py
-     │
-     ├── Risk & Execution
-     │      ├── risk_manager.py
-     │      └── execution_engine.py
-     │
-     ├── Broker
-     │      ├── broker_adapter.py
-     │      ├── paper_broker.py
-     │      └── angel_broker.py
-     │
-     └── Session & Logging
-            ├── trading_session.py
-            └── trade_logger.py
-```
-
-### Supporting Research
-
-The backtesting and research modules are kept separate from the live
-execution path.
-
-They are used for:
-
-- Historical strategy evaluation
-- Market-data experiments
-- Multi-stock analysis
-- Entry and exit research
-- Performance analysis
-- Strategy iteration
-
-This separation keeps experimental research code from becoming tightly
-coupled to the live trading infrastructure.
 
 
 ## Tech Stack
