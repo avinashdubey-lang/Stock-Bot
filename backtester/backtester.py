@@ -8,10 +8,10 @@ import pandas as pd
 # SETTINGS
 # =====================================================
 
-Days=360
+Days=30
 
 TARGET_PERCENT = 0.7
-SL_PERCENT = 0.35
+SL_PERCENT = 0.4
 
 INITIAL_CAPITAL = 42000
 

@@ -173,7 +173,7 @@ class ExecutionEngine:
 
         direction = pos["direction"]
         sl = pos["stoploss"]
-
+        target = pos["target"]
         # -----------------------
         # EOD EXIT
         # -----------------------
@@ -210,6 +210,40 @@ class ExecutionEngine:
             )
 
             return
+
+        # -----------------------
+        # IMMEDIATE TARGET EXIT
+        # -----------------------
+
+        if direction == "BUY":
+
+            if float(ltp) >= float(target):
+
+                print(
+                    "🎯 BUY TARGET HIT"
+                )
+
+                self._close_trade(
+                    "TARGET_HIT",
+                    ltp
+                )
+
+                return
+
+        else:
+
+            if float(ltp) <= float(target):
+
+                print(
+                    "🎯 SELL TARGET HIT"
+                )
+
+                self._close_trade(
+                    "TARGET_HIT",
+                    ltp
+                )
+
+                return
 
         # -----------------------
         # STRICT STOP LOSS

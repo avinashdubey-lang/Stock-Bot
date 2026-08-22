@@ -300,28 +300,31 @@ for current_day in days:
 
 
             # =============================================
-            # EOD EXIT
-            # =============================================
+        # EOD EXIT — 3:14 PM
+        # =============================================
 
-            if exit_price is None and i == len(day) - 1:
+        if (
+            exit_price is None
+            and candle["Datetime"].time() >= pd.Timestamp("15:14").time()
+        ):
 
-                exit_price = float(candle["Close"])
+            exit_price = float(candle["Close"])
 
-                if direction == "LONG":
+            if direction == "LONG":
 
-                    pnl = (
-                        (exit_price - entry)
-                        * quantity
-                    )
+                pnl = (
+                    (exit_price - entry)
+                    * quantity
+                )
 
-                else:
+            else:
 
-                    pnl = (
-                        (entry - exit_price)
-                        * quantity
-                    )
+                pnl = (
+                    (entry - exit_price)
+                    * quantity
+                )
 
-                reason = "EOD"
+            reason = "EOD"
 
             # =============================================
             # SAVE TRADE

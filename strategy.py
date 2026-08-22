@@ -1,4 +1,5 @@
 from config import SYMBOL
+import config
 class Strategy:
 
     def __init__(self):
@@ -131,17 +132,7 @@ class Strategy:
 
             entry = close
 
-            if self.same_colour:
-
-                action = "BUY"
-                direction = "BUY"
-
-                sl = entry * 0.996
-                target = entry * 1.007
-
-                print("📈 BUY BREAKOUT")
-
-            else:
+            if config.USE_TRAFFIC_LIGHT and not self.same_colour:
 
                 action = "SELL"
                 direction = "SELL"
@@ -150,6 +141,16 @@ class Strategy:
                 target = entry * 0.993
 
                 print("📉 REVERSE SELL BREAKOUT")
+
+            else:
+
+                action = "BUY"
+                direction = "BUY"
+
+                sl = entry * 0.996
+                target = entry * 1.007
+
+                print("📈 BUY BREAKOUT")
 
 
             self.position = {
@@ -175,17 +176,7 @@ class Strategy:
 
             entry = close
 
-            if self.same_colour:
-
-                action = "SELL"
-                direction = "SELL"
-
-                sl = entry * 1.004
-                target = entry * 0.993
-
-                print("📉 SELL BREAKOUT")
-
-            else:
+            if config.USE_TRAFFIC_LIGHT and not self.same_colour:
 
                 action = "BUY"
                 direction = "BUY"
@@ -194,6 +185,16 @@ class Strategy:
                 target = entry * 1.007
 
                 print("📈 REVERSE BUY BREAKOUT")
+
+            else:
+
+                action = "SELL"
+                direction = "SELL"
+
+                sl = entry * 1.004
+                target = entry * 0.993
+
+                print("📉 SELL BREAKOUT")
 
             self.position = {
                 "direction": direction,

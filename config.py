@@ -15,6 +15,8 @@ EXCHANGE = "NSE"
 
 PRODUCT_TYPE = "INTRADAY"
 
+USE_TRAFFIC_LIGHT = False
+
 # Angel One (used only in LIVE mode)
 
 
